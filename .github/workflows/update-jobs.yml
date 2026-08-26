@@ -1,0 +1,42 @@
+name: Daily job refresh
+
+on:
+  schedule:
+    # 00:30 UTC = 08:30 Asia/Shanghai (China does not observe DST)
+    - cron: "30 0 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: daily-job-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Verify and discover jobs
+        run: python scripts/update_jobs.py --timeout 12 --workers 8
+
+      - name: Commit refreshed data
+        run: |
+          if git diff --quiet -- data/jobs.js data/jobs.json; then
+            echo "No data changes"
+            exit 0
+          fi
+          git config user.name "solid-mechanics-job-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add data/jobs.js data/jobs.json
+          git commit -m "data: daily job refresh"
+          git push
