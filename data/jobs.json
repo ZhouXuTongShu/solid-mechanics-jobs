@@ -1,16 +1,16 @@
 {
   "meta": {
-    "version": "2026.08.26.5",
+    "version": "2026.08.26.6",
     "updatedAt": "2026-08-26",
-    "updatedTime": "18:28",
+    "updatedTime": "12:09",
     "timezone": "Asia/Shanghai",
     "schedule": "每天 08:30",
     "scope": "上海、合肥、江苏、浙江",
     "lastRun": {
-      "reachable": 46,
-      "unreachable": 10,
+      "reachable": 47,
+      "unreachable": 9,
       "officialUnavailable": 9,
-      "changedJobs": 8,
+      "changedJobs": 13,
       "discoveredJobs": 0
     },
     "officialLinkPolicy": "只允许招聘单位自有域名、招聘单位自有招聘子域名或单位官网内的人才招聘栏目；不使用高校转载页、综合招聘平台或聚合站作为跳转入口。",
@@ -104,8 +104,9 @@
       "officialStatus": "verified",
       "deadlineTracking": "portal",
       "deadlineStatus": "not-published",
-      "contentHash": "15b634dcc058d016",
-      "changedAt": "2026-08-26"
+      "contentHash": "1356b1ea79340caa",
+      "changedAt": "2026-08-26",
+      "pageTitle": "加入禾赛｜禾赛科技"
     },
     {
       "id": "sh-tars-robot-mechanics-2027",
@@ -394,8 +395,9 @@
       "officialStatus": "verified",
       "deadlineTracking": "portal",
       "deadlineStatus": "not-published",
-      "contentHash": "28aa440691c9ebcb",
-      "pageTitle": "联影_招聘_集团_人才_校招_管培"
+      "contentHash": "f3930d41b72ead68",
+      "pageTitle": "联影_招聘_集团_人才_校招_管培",
+      "changedAt": "2026-08-26"
     },
     {
       "id": "sh-space-propulsion-2027",
@@ -423,7 +425,7 @@
       "officialStatus": "verified",
       "deadlineTracking": "portal",
       "deadlineStatus": "not-published",
-      "lastError": "[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: Hostname mismatch, certificate is not valid for 'www.sast.spacechina.com'. (_ssl.c:1129)",
+      "lastError": "[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: Hostname mismatch, certificate is not valid for 'www.sast.spacechina.com'. (_ssl.c:1010)",
       "lastAttempt": "2026-08-26"
     },
     {
@@ -452,7 +454,7 @@
       "officialStatus": "verified",
       "deadlineTracking": "portal",
       "deadlineStatus": "not-published",
-      "lastError": "[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: Hostname mismatch, certificate is not valid for 'www.sast.spacechina.com'. (_ssl.c:1129)",
+      "lastError": "[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: Hostname mismatch, certificate is not valid for 'www.sast.spacechina.com'. (_ssl.c:1010)",
       "lastAttempt": "2026-08-26"
     },
     {
@@ -481,7 +483,7 @@
       "officialStatus": "verified",
       "deadlineTracking": "portal",
       "deadlineStatus": "not-published",
-      "lastError": "[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: Hostname mismatch, certificate is not valid for 'www.sast.spacechina.com'. (_ssl.c:1129)",
+      "lastError": "[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: Hostname mismatch, certificate is not valid for 'www.sast.spacechina.com'. (_ssl.c:1010)",
       "lastAttempt": "2026-08-26"
     },
     {
@@ -510,7 +512,7 @@
       "officialStatus": "verified",
       "deadlineTracking": "portal",
       "deadlineStatus": "not-published",
-      "lastError": "EOF occurred in violation of protocol (_ssl.c:1129)",
+      "lastError": "timed out",
       "lastAttempt": "2026-08-26"
     },
     {
@@ -533,15 +535,13 @@
       "reputation": "大飞机平台稀缺、稳定性高；流程、适航文件和跨部门协调较多。",
       "url": "https://zhaopin.comac.cc/",
       "lastChecked": "2026-08-26",
-      "sourceState": "official-unreachable",
+      "sourceState": "official-verified",
       "officialKind": "employer-recruitment",
       "officialVerifiedAt": "2026-08-26",
       "officialStatus": "verified",
       "deadlineTracking": "portal",
       "deadlineStatus": "not-published",
-      "contentHash": "35c778fab347fe9c",
-      "lastError": "EOF occurred in violation of protocol (_ssl.c:1129)",
-      "lastAttempt": "2026-08-26"
+      "contentHash": "35c778fab347fe9c"
     },
     {
       "id": "sh-nio-cae-2027",
@@ -1148,16 +1148,15 @@
       "reputation": "与流固耦合、冲击、声学经历高度匹配；国家任务、保密与流程明显。",
       "url": "https://zhaopin.taihulab.com.cn/",
       "lastChecked": "2026-08-26",
-      "sourceState": "official-unreachable",
+      "sourceState": "official-verified",
       "officialKind": "employer-recruitment",
       "officialVerifiedAt": "2026-08-26",
       "officialStatus": "verified",
       "deadlineTracking": "portal",
       "deadlineStatus": "not-published",
-      "contentHash": "f09ff86dc3ac47ae",
+      "contentHash": "bab0bf15269b6044",
       "pageTitle": "招聘官网",
-      "lastError": "EOF occurred in violation of protocol (_ssl.c:1129)",
-      "lastAttempt": "2026-08-26"
+      "changedAt": "2026-08-26"
     },
     {
       "id": "js-gusu-postdoc-2027",
@@ -1266,7 +1265,7 @@
       "reputation": "C++和OpenFOAM背景利用率高；兼有客户交付和软件产品压力。",
       "url": "https://www.sugon.com/about/talents",
       "lastChecked": "2026-08-26",
-      "sourceState": "official-verified",
+      "sourceState": "official-unreachable",
       "officialKind": "employer-careers",
       "officialVerifiedAt": "2026-08-26",
       "officialStatus": "verified",
@@ -1274,7 +1273,9 @@
       "deadlineStatus": "not-published",
       "contentHash": "6af6c7acae395e49",
       "pageTitle": "人才发展-中科曙光",
-      "changedAt": "2026-08-26"
+      "changedAt": "2026-08-26",
+      "lastError": "timed out",
+      "lastAttempt": "2026-08-26"
     },
     {
       "id": "js-tianfu-solver-2027",
@@ -1416,7 +1417,7 @@
       "officialStatus": "verified",
       "deadlineTracking": "portal",
       "deadlineStatus": "not-published",
-      "contentHash": "d548c52f01f61db1",
+      "contentHash": "f5ee89973f9be22c",
       "pageTitle": "瑞声科技",
       "changedAt": "2026-08-26"
     },
@@ -1706,7 +1707,7 @@
       "officialStatus": "verified",
       "deadlineTracking": "portal",
       "deadlineStatus": "not-published",
-      "contentHash": "85183bafbf860636",
+      "contentHash": "e81f8c49eb19857f",
       "pageTitle": "CFMOTO春风动力中文官网",
       "changedAt": "2026-08-26"
     },
@@ -1823,7 +1824,7 @@
       "officialStatus": "verified",
       "deadlineTracking": "detail",
       "deadlineStatus": "not-published",
-      "lastError": "HTTP 404",
+      "lastError": "[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1010)",
       "lastAttempt": "2026-08-26"
     },
     {
@@ -1852,7 +1853,7 @@
       "officialStatus": "verified",
       "deadlineTracking": "portal",
       "deadlineStatus": "not-published",
-      "contentHash": "eed98c3ea8d4f4b1",
+      "contentHash": "754f6f46ae51810b",
       "pageTitle": "晶盛机电",
       "changedAt": "2026-08-26"
     },
