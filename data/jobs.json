@@ -1,8 +1,8 @@
 {
   "meta": {
-    "version": "2026.08.27.5",
+    "version": "2026.08.27.6",
     "updatedAt": "2026-08-27",
-    "updatedTime": "13:41",
+    "updatedTime": "13:51",
     "timezone": "Asia/Shanghai",
     "schedule": "每天 08:30",
     "scope": "上海、合肥、江苏、浙江",
@@ -10,7 +10,7 @@
       "reachable": 12,
       "unreachable": 0,
       "officialUnavailable": 0,
-      "changedJobs": 77,
+      "changedJobs": 1,
       "discoveredJobs": 0,
       "verifiedOpenJobs": 12,
       "excludedCandidates": 0,
@@ -121,7 +121,7 @@
       "officialVerifiedAt": "2026-08-27",
       "lastChecked": "2026-08-27",
       "sourceState": "official-verified",
-      "contentHash": "e68c0d63441872e7",
+      "contentHash": "632f4e75f8f83503",
       "pageTitle": "【博士后招聘】材料科学与工程学院 复合材料研究所邓涛老师课题组招聘博士后 - 上海交通大学材料科学与工程学院"
     },
     {
