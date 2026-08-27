@@ -1,8 +1,8 @@
 window.SOLID_MECHANICS_JOBS = {
   "meta": {
-    "version": "2026.08.27.8",
+    "version": "2026.08.27.9",
     "updatedAt": "2026-08-27",
-    "updatedTime": "14:23",
+    "updatedTime": "14:35",
     "timezone": "Asia/Shanghai",
     "schedule": "每天 08:30",
     "scope": "上海、合肥、江苏、浙江",
@@ -10,7 +10,7 @@ window.SOLID_MECHANICS_JOBS = {
       "reachable": 5,
       "unreachable": 0,
       "officialUnavailable": 0,
-      "changedJobs": 2,
+      "changedJobs": 1,
       "discoveredJobs": 0,
       "verifiedOpenJobs": 5,
       "excludedCandidates": 0,
@@ -184,7 +184,7 @@ window.SOLID_MECHANICS_JOBS = {
       "officialVerifiedAt": "2026-08-27",
       "lastChecked": "2026-08-27",
       "sourceState": "official-protected",
-      "contentHash": "26a67c8151a888fa",
+      "contentHash": "85cc44c4fe69d174",
       "verificationNote": "官网对自动访问启用保护；当前状态沿用最近一次人工浏览器核验，并继续每日检查链接与截止日。"
     }
   ]
