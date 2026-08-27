@@ -1,8 +1,8 @@
 {
   "meta": {
-    "version": "2026.08.27.10",
+    "version": "2026.08.27.11",
     "updatedAt": "2026-08-27",
-    "updatedTime": "16:18",
+    "updatedTime": "16:45",
     "timezone": "Asia/Shanghai",
     "schedule": "每天 08:30",
     "scope": "上海、合肥、江苏、浙江",
@@ -10,7 +10,7 @@
       "reachable": 21,
       "unreachable": 0,
       "officialUnavailable": 0,
-      "changedJobs": 17,
+      "changedJobs": 4,
       "discoveredJobs": 0,
       "verifiedOpenJobs": 21,
       "excludedCandidates": 0,
@@ -183,7 +183,7 @@
       "officialVerifiedAt": "2026-08-27",
       "lastChecked": "2026-08-27",
       "sourceState": "official-protected",
-      "contentHash": "c8c42caec7a98186",
+      "contentHash": "e69dff1209c70c9b",
       "verificationNote": "官网对自动访问启用保护；当前状态沿用最近一次人工浏览器核验，并继续每日检查链接与截止日。"
     },
     {
@@ -216,7 +216,7 @@
       "officialVerifiedAt": "2026-08-27",
       "lastChecked": "2026-08-27",
       "sourceState": "official-browser-verified",
-      "contentHash": "fb3247c3ae7595d2",
+      "contentHash": "b25a2b9b3c7fb57a",
       "verificationNote": "该招聘官网由前端动态加载；本站每日使用浏览器核验具体岗位标题、职责与投递状态。",
       "pageTitle": "中微公司 - 校园招聘"
     },
@@ -650,7 +650,7 @@
       "officialVerifiedAt": "2026-08-27",
       "lastChecked": "2026-08-27",
       "sourceState": "official-browser-verified",
-      "contentHash": "9c22d6645f7d5224",
+      "contentHash": "969ea137a726b124",
       "verificationNote": "该招聘官网由前端动态加载；本站每日使用浏览器核验具体岗位标题、职责与投递状态。",
       "pageTitle": "浙江吉利控股集团有限公司 - 校园招聘"
     },
@@ -684,7 +684,7 @@
       "officialVerifiedAt": "2026-08-27",
       "lastChecked": "2026-08-27",
       "sourceState": "official-browser-verified",
-      "contentHash": "15e7ce5bc72f121b",
+      "contentHash": "73fb5e31df13532e",
       "verificationNote": "该招聘官网由前端动态加载；本站每日使用浏览器核验具体岗位标题、职责与投递状态。",
       "pageTitle": "浙江吉利控股集团有限公司 - 校园招聘"
     }
