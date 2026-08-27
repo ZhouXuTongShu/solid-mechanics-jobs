@@ -80,6 +80,7 @@
     openMetric: document.querySelector("#openMetric"),
     officialLinkCount: document.querySelector("#officialLinkCount"),
     officialDeadlineCount: document.querySelector("#officialDeadlineCount"),
+    salaryEstimateCount: document.querySelector("#salaryEstimateCount"),
     employeeReviewCount: document.querySelector("#employeeReviewCount"),
     sMetric: document.querySelector("#sMetric"),
     priorityCityMetric: document.querySelector("#priorityCityMetric"),
@@ -179,6 +180,9 @@
           review.sample,
           review.basis,
           ...(review.sources || []),
+          job.salaryText,
+          job.salaryBasis,
+          ...(job.salarySources || []),
           ...(job.keywords || []),
         ].join(" "));
         if (!haystack.includes(query)) return false;
@@ -254,17 +258,25 @@
     const sources = (review.sources || []).length
       ? review.sources.map((source) => `<span class="review-source-chip">${escapeHtml(source)}</span>`).join("")
       : `<span class="review-source-chip empty">无足量独立样本</span>`;
+    const salaryReview = job.salaryType === "community-estimate"
+      ? `<section class="salary-review">
+          <span>博士薪资估算依据</span>
+          <p><strong>${escapeHtml(job.salaryText)}</strong>${escapeHtml(job.salaryBasis || "根据公开薪酬样本保守估算。")}</p>
+          <small>参考 ${escapeHtml((job.salarySources || []).join("、") || "公开样本")} · ${escapeHtml(job.salaryConfidence || "低")}置信度 · 整理于 ${escapeHtml(formatDate(job.salaryUpdatedAt, true))}</small>
+        </section>`
+      : "";
 
     return `
       <details class="employee-review">
         <summary>
-          <span class="review-heading"><i aria-hidden="true"></i><strong>职员视角</strong></span>
+          <span class="review-heading"><i aria-hidden="true"></i><strong>${job.salaryType === "community-estimate" ? "职员视角 / 薪资依据" : "职员视角"}</strong></span>
           <span class="pressure-pill ${pressureTone(review.pressure)}">压力 ${escapeHtml(review.pressure)}</span>
           <span class="review-sample">${escapeHtml(review.sample)}</span>
           <span class="review-chevron" aria-hidden="true">⌄</span>
         </summary>
         <div class="review-panel">
           <div class="review-grid">
+            ${salaryReview}
             <section>
               <span>工作环境</span>
               <p>${escapeHtml(review.environment)}</p>
@@ -295,6 +307,12 @@
     const saved = state.saved.has(job.id);
     const status = STATUS_LABELS[job.status] || job.status;
     const salary = job.salaryText || `${job.salaryMin || "—"}–${job.salaryMax || "—"} 万/年`;
+    const salaryIsEstimate = job.salaryType === "community-estimate";
+    const salarySources = Array.isArray(job.salarySources) ? job.salarySources : [];
+    const visibleSalarySources = salarySources.slice(0, 2).join(" / ") + (salarySources.length > 2 ? " 等" : "");
+    const salaryEvidence = salaryIsEstimate
+      ? `<small class="salary-estimate-line" title="${escapeHtml(job.salaryBasis || "根据公开薪酬样本估算")}"><b>网络估算</b>${escapeHtml(visibleSalarySources || "公开样本")} · ${escapeHtml(job.salaryConfidence || "低")}置信度</small>`
+      : "";
     const deadline = getDeadlineInfo(job);
     const sourceState = job.sourceState === "official-protected"
       ? " · 官网访问保护"
@@ -329,8 +347,9 @@
           <strong>${escapeHtml(job.city)}</strong>
         </div>
         <div class="salary-block">
-          <span>博士薪资</span>
+          <span>${salaryIsEstimate ? "博士税前年包估算" : "博士薪资"}</span>
           <strong>${escapeHtml(salary)}</strong>
+          ${salaryEvidence}
           <small class="deadline-line ${deadline.tone}" title="截止信息只采信招聘单位官网"><b>截止</b>${escapeHtml(deadline.label)}</small>
           <small class="last-check">官网核验 ${escapeHtml(formatDate(checkedAt))}${escapeHtml(sourceState)}</small>
         </div>
@@ -373,6 +392,9 @@
     elements.openMetric.textContent = officialJobs.length;
     elements.officialLinkCount.textContent = officialJobs.length;
     elements.officialDeadlineCount.textContent = allJobs.filter((job) => job.deadlineStatus === "dated").length;
+    if (elements.salaryEstimateCount) {
+      elements.salaryEstimateCount.textContent = allJobs.filter((job) => job.salaryType === "community-estimate").length;
+    }
     if (elements.employeeReviewCount) {
       elements.employeeReviewCount.textContent = allJobs.filter((job) => employeeReviews[job.id] || employeeReviews[job.companyReviewId]).length;
     }

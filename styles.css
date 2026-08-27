@@ -560,7 +560,8 @@ select {
 }
 
 .source-policy-note,
-.review-policy-note {
+.review-policy-note,
+.salary-policy-note {
   display: flex;
   align-items: center;
   gap: 14px;
@@ -584,7 +585,7 @@ select {
 }
 
 .review-policy-note {
-  margin-bottom: 20px;
+  margin-bottom: 10px;
   border-color: rgba(196, 131, 46, 0.22);
   background: rgba(196, 131, 46, 0.07);
 }
@@ -594,8 +595,20 @@ select {
   background: var(--acid);
 }
 
+.salary-policy-note {
+  margin-bottom: 20px;
+  border-color: rgba(91, 107, 49, 0.22);
+  background: rgba(215, 231, 90, 0.09);
+}
+
+.salary-seal {
+  color: var(--ink);
+  background: var(--acid);
+}
+
 .source-policy-note p,
-.review-policy-note p {
+.review-policy-note p,
+.salary-policy-note p {
   margin: 0;
   font-size: 11px;
   line-height: 1.7;
@@ -603,7 +616,8 @@ select {
 
 .source-policy-note b,
 .source-policy-note strong span,
-.review-policy-note b { color: var(--green); }
+.review-policy-note b,
+.salary-policy-note b { color: var(--green); }
 
 .type-tabs {
   display: flex;
@@ -961,6 +975,25 @@ select {
   font-size: 15px;
 }
 
+.salary-estimate-line {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 8.5px;
+  line-height: 1.5;
+}
+
+.salary-estimate-line b {
+  display: inline-block;
+  margin-right: 5px;
+  padding: 1px 4px;
+  border-radius: 4px;
+  color: var(--green);
+  background: rgba(215, 231, 90, 0.26);
+  font-size: 8px;
+  font-weight: 700;
+}
+
 .last-check {
   margin-top: 7px;
   letter-spacing: 0;
@@ -1171,6 +1204,27 @@ select {
 
 .review-grid .review-question > span { color: #8b5a18; }
 
+.review-grid .salary-review {
+  grid-column: 1 / -1;
+  border: 1px solid rgba(13, 95, 81, 0.13);
+  background: rgba(95, 174, 138, 0.075);
+}
+
+.salary-review p strong {
+  display: inline-block;
+  margin-right: 9px;
+  color: var(--green);
+  font-size: 13px;
+}
+
+.salary-review small {
+  display: block;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.55;
+}
+
 .review-meta {
   display: flex;
   flex-wrap: wrap;
@@ -1349,7 +1403,8 @@ select {
   .section-heading { display: block; }
   .section-heading > p { margin-top: 16px; text-align: left; }
   .source-policy-note,
-  .review-policy-note { align-items: flex-start; }
+  .review-policy-note,
+  .salary-policy-note { align-items: flex-start; }
   .select-group { grid-template-columns: 1fr; }
   .job-card { grid-template-columns: minmax(0, 1fr) 108px; gap: 15px; padding: 20px; }
   .company-block,

@@ -1,0 +1,168 @@
+{
+  "meta": {
+    "updatedAt": "2026-08-27",
+    "unit": "税前年收入，万元/年",
+    "policy": "用于人工估算，不用于岗位有效性、专业匹配、截止日期或投递入口判断。优先同公司同岗位博士样本；缺少时使用相近研发岗、硕士样本、城市和岗位门槛保守外推。一次性签字费、地方补贴、未确定股票和波动加班费通常不全额计入。",
+    "caveat": "公开 offer 与匿名薪酬样本存在自选择、年份、部门和职级偏差；区间不是招聘单位承诺。"
+  },
+  "profiles": [
+    {
+      "company": "中芯国际",
+      "jobIds": ["sh-smic-package-integration-2027", "sh-smic-package-device-2027"],
+      "samples": [
+        {
+          "source": "牛客",
+          "url": "https://www.nowcoder.com/feed/main/detail/a0aef7ea89f245b99c0a3cec22ccbb51",
+          "observation": "上海博士研发样本约 25K×15，另有签字费和加班收入。"
+        },
+        {
+          "source": "牛客",
+          "url": "https://www.nowcoder.com/feed/main/detail/8054939ac5bf47cf8367c09b93101d25",
+          "observation": "博士相近岗位样本约 23K×15–18，并出现有服务期约束的签字费。"
+        },
+        {
+          "source": "知乎",
+          "url": "https://www.zhihu.com/question/493534249/answer/1997336995719032877",
+          "observation": "博士工艺研发样本给出月薪、3–6 个月奖金及补贴的组合。"
+        },
+        {
+          "source": "牛客",
+          "url": "https://www.nowcoder.com/feed/main/detail/378c19a2df494db983848c1a09cc53c7",
+          "observation": "先进封装 SI 仿真相近岗位样本总收入约 36 万，学历层级低于本网站目标人群。"
+        }
+      ]
+    },
+    {
+      "company": "中国建筑第八工程局有限公司",
+      "jobIds": ["sh-cscec8-engineering-research-2027", "sh-cscec8-new-construction-2027"],
+      "samples": [
+        {
+          "source": "牛客",
+          "url": "https://www.nowcoder.com/enterprise/5342/salary",
+          "observation": "博士高级结构工程师公开样本约 26K×14；普通工程技术岗位明显低于博士研发定岗。"
+        },
+        {
+          "source": "职友集",
+          "url": "https://www.jobui.com/company/1229640/salary/",
+          "observation": "上海智慧建造研发岗位公开区间约 20–35K/月，用于交叉校准研发岗上限。"
+        }
+      ]
+    },
+    {
+      "company": "卡特彼勒",
+      "jobIds": ["js-caterpillar-cfd-2027"],
+      "samples": [
+        {
+          "source": "高校公开校招信息",
+          "url": "https://51uns.bysjy.com.cn/Announce/Details/3371192?schoolCode=10708",
+          "observation": "卡特彼勒无锡研发仿真方向公开月薪约 13–18K。"
+        },
+        {
+          "source": "牛客",
+          "url": "https://www.nowcoder.com/enterprise/4428",
+          "observation": "公司薪资公开样本量较少，因此只作为低权重交叉参考。"
+        }
+      ]
+    },
+    {
+      "company": "中微公司",
+      "jobIds": ["sh-amec-fea-2027"],
+      "samples": [
+        {
+          "source": "牛客",
+          "url": "https://www.nowcoder.com/enterprise/7414/salary",
+          "observation": "博士工艺研发样本总包约 50 万；相近仿真岗样本约 23K×15，并可能另有加班和股权。"
+        },
+        {
+          "source": "职友集",
+          "url": "https://www.jobui.com/company/16386950/salary/",
+          "observation": "公司博士公开样本均值约 28.4K/月，样本区间较宽，仅用于量级校准。"
+        }
+      ]
+    },
+    {
+      "company": "禾赛科技",
+      "jobIds": ["sh-hesai-mech-sim-2027", "sh-hesai-opto-package-2027", "sh-hesai-thermal-2027"],
+      "samples": [
+        {
+          "source": "牛客",
+          "url": "https://www.nowcoder.com/enterprise/2743/salary",
+          "observation": "相近 CAE 硕士样本约 40 万；博士系统技术岗样本约 60–70 万。结构、封装与热设计岗位据此在两者之间保守折算。"
+        }
+      ]
+    },
+    {
+      "company": "小米集团",
+      "jobIds": ["sh-xiaomi-phone-structure-2027", "sh-xiaomi-package-2027", "js-xiaomi-durability-2027", "js-xiaomi-crash-2027", "js-xiaomi-occupant-2027", "sh-xiaomi-battery-thermal-2027"],
+      "samples": [
+        {
+          "source": "牛客",
+          "url": "https://www.nowcoder.com/feed/main/detail/8ed28cac443442a8b9bbf8df7fc1e9dc",
+          "observation": "结构工程师硕士样本约 20K×15–18，较高档基础月薪约 23K。"
+        },
+        {
+          "source": "牛客",
+          "url": "https://www.nowcoder.com/feed/main/detail/1239ee41bc3844559dfe0bfe2bf5a747",
+          "observation": "小米汽车 CAE 相近岗位样本约 18K×15。"
+        },
+        {
+          "source": "牛客",
+          "url": "https://www.nowcoder.com/enterprise/23563/salary",
+          "observation": "小米汽车性能开发、性能集成、硬件等岗位提供了 15 薪附近的校招横向样本。"
+        },
+        {
+          "source": "电子工程专辑公开汇总",
+          "url": "https://www.eefocus.com/article/1809685.html",
+          "observation": "公开 offer 汇总包含机械、测试和热管理岗位的城市与年薪样本，用于校准南京和上海差异。"
+        }
+      ]
+    },
+    {
+      "company": "蔚来",
+      "jobIds": ["sh-nio-cae-2027", "hf-nio-cae-2027", "sh-nio-passive-safety-2027", "sh-nio-cell-simulation-2027"],
+      "samples": [
+        {
+          "source": "牛客",
+          "url": "https://www.nowcoder.com/enterprise/961/salary",
+          "observation": "公司页聚合了较多公开薪资样本，但岗位与学历混合，作为低权重背景样本。"
+        },
+        {
+          "source": "牛客",
+          "url": "https://www.nowcoder.com/feed/main/detail/6baa61a140f740419486e1cc9af2c10e",
+          "observation": "上海电池算法硕士样本总收入约 34 万，并含股票。"
+        },
+        {
+          "source": "牛客",
+          "url": "https://www.nowcoder.com/discuss/617059368990703616",
+          "observation": "上海智能硬件校招样本约 23K×14.5，用于校准研发现金收入量级。"
+        }
+      ]
+    },
+    {
+      "company": "吉利控股",
+      "jobIds": ["zj-geely-cae-hangzhou-2027", "js-geely-cae-wuxi-2027"],
+      "samples": [
+        {
+          "source": "牛客",
+          "url": "https://www.nowcoder.com/feed/main/detail/7923fa6417eb4ff79933f9b6554335d1",
+          "observation": "杭州商用车技术岗硕士样本约 12K×13，另有月度补贴。"
+        },
+        {
+          "source": "牛客",
+          "url": "https://www.nowcoder.com/feed/main/detail/8cf9eb2b91b64493870df47cddeaeb9c",
+          "observation": "商用车 CAE 同名岗位有 offer 讨论，但未公开完整数字，因此仅作岗位层级参考。"
+        },
+        {
+          "source": "脉脉",
+          "url": "https://maimai.cn/article/detail?efid=YeqZEtMxtNk2TsjIBRxxUg&fid=1727683515",
+          "observation": "商用车技术岗位混合职级样本中位数较高，因非应届专属而降低权重。"
+        },
+        {
+          "source": "谈职",
+          "url": "https://www.tanzhi.cn/wuxi/ad80dd51-74fa-42e0-a9df-fb6336392258/",
+          "observation": "无锡相近应用工程师地区样本中位数约 15K/月；并非同名 CAE 岗，只用于地区量级校准。"
+        }
+      ]
+    }
+  ]
+}

@@ -326,6 +326,19 @@ def load_candidates() -> list[dict[str, Any]]:
             raise ValueError(f"Candidate {candidate_id} lacks explicit mechanics-work evidence")
         if not isinstance(candidate.get("evidenceAll"), list) or not candidate["evidenceAll"]:
             raise ValueError(f"Candidate {candidate_id} has no page evidence checks")
+        if candidate.get("salaryType") == "community-estimate":
+            salary_min = candidate.get("salaryMin")
+            salary_max = candidate.get("salaryMax")
+            if not isinstance(salary_min, (int, float)) or not isinstance(salary_max, (int, float)):
+                raise ValueError(f"Candidate {candidate_id} has non-numeric salary estimate")
+            if salary_min <= 0 or salary_max <= salary_min:
+                raise ValueError(f"Candidate {candidate_id} has an invalid salary estimate range")
+            if candidate.get("salaryConfidence") not in {"高", "中", "中低", "低"}:
+                raise ValueError(f"Candidate {candidate_id} has an invalid salary confidence")
+            if not isinstance(candidate.get("salarySources"), list) or not candidate["salarySources"]:
+                raise ValueError(f"Candidate {candidate_id} has no salary estimate sources")
+            if not str(candidate.get("salaryBasis", "")).strip():
+                raise ValueError(f"Candidate {candidate_id} has no salary estimate basis")
     return candidates
 
 
@@ -935,6 +948,15 @@ def main() -> int:
     data["meta"]["officialLinkPolicy"] = (
         "只允许企业自有域名、企业自有招聘子域名，或能够明确归属于该企业的官方招聘系统；"
         "不使用高校转载页、综合招聘平台或聚合站作为跳转入口。"
+    )
+    data["meta"]["salaryEstimatePolicy"] = (
+        "官网未披露时，按同公司同岗位、相近研发岗、学历和城市的公开薪酬样本估算博士税前年包；"
+        "一次性签字费、地方补贴、未确定股票和波动加班费通常不全额计入。估算不是招聘单位承诺。"
+    )
+    estimated_jobs = [job for job in data["jobs"] if job.get("salaryType") == "community-estimate"]
+    data["meta"]["salaryEstimateCount"] = len(estimated_jobs)
+    data["meta"]["salaryEstimateUpdatedAt"] = max(
+        (str(job.get("salaryUpdatedAt", "")) for job in estimated_jobs), default=""
     )
     data["meta"]["officialLinksVerifiedAt"] = today.isoformat()
     data["meta"]["candidateCount"] = len(candidates)
