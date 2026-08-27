@@ -5,15 +5,21 @@
   const sourceJobs = Array.isArray(dataset.jobs) ? dataset.jobs : [];
   const reviewDataset = window.SOLID_MECHANICS_EMPLOYEE_REVIEWS || { meta: {}, reviews: {} };
   const employeeReviews = reviewDataset.reviews || {};
+  const ENTERPRISE_TYPES = new Set(["央国企", "私营企业", "外资企业", "上市企业"]);
+  const ACADEMIC_GROUP_PATTERN = /课题组|实验室|博士后|项目组|教授团队|大学·/i;
+  const MECHANICS_WORK_PATTERN = /固体力学|工程力学|计算力学|结构力学|有限元|\bFEA\b|\bCAE\b|\bCFD\b|结构仿真|结构强度|高性能结构|复材工程结构|振动控制|结构振动|振动噪声|疲劳|断裂|热[\/、]应力仿真|应力仿真|力[\/、]热仿真|流体仿真|流动与传热|流体力学|热管理|流固耦合|多物理场/i;
 
   function isHomepageEligible(job) {
     const hasOfficialDetail = job.officialStatus === "verified"
       && job.officialKind === "employer-job"
       && /^https?:\/\//i.test(job.url || "");
-    const hasMechanicsEvidence = /力学/.test(job.majorEvidence || "") && Boolean(job.officialEvidence);
+    const enterpriseOnly = ENTERPRISE_TYPES.has(job.employerType);
+    const excludesAcademicGroups = !ACADEMIC_GROUP_PATTERN.test(`${job.company || ""} ${job.role || ""}`);
+    const fitEvidence = job.fitEvidence || job.majorEvidence || "";
+    const hasMechanicsEvidence = MECHANICS_WORK_PATTERN.test(fitEvidence) && Boolean(job.officialEvidence);
     const deadline = job.deadline ? new Date(`${job.deadline}T23:59:59+08:00`) : null;
     const deadlineIsCurrent = !deadline || Number.isNaN(deadline.getTime()) || deadline >= new Date();
-    return hasOfficialDetail && hasMechanicsEvidence && deadlineIsCurrent && job.status === "open";
+    return enterpriseOnly && excludesAcademicGroups && hasOfficialDetail && hasMechanicsEvidence && deadlineIsCurrent && job.status === "open";
   }
 
   // Defense in depth: even if a stale dataset is briefly served, the homepage
@@ -31,7 +37,7 @@
 
   const storedSavedIds = readStoredSavedIds();
 
-  const TYPE_ORDER = ["高校/科研院所", "央国企", "私营企业", "研究所/实验室", "外资企业", "产业研究平台"];
+  const TYPE_ORDER = ["上市企业", "央国企", "外资企业", "私营企业"];
   const CITY_ORDER = ["上海", "合肥", "南京", "苏州", "无锡", "常州", "徐州", "杭州", "宁波", "绍兴", "江阴", "昆山"];
   const STATUS_LABELS = {
     open: "官网确认在招",
@@ -234,7 +240,7 @@
   }
 
   function renderEmployeeReview(job) {
-    const review = employeeReviews[job.id] || {
+    const review = employeeReviews[job.id] || employeeReviews[job.companyReviewId] || {
       pressure: "待核验",
       environment: "尚未完成公开员工样本核验。",
       rhythm: "暂无可靠信息。",
@@ -290,7 +296,11 @@
     const status = STATUS_LABELS[job.status] || job.status;
     const salary = job.salaryText || `${job.salaryMin || "—"}–${job.salaryMax || "—"} 万/年`;
     const deadline = getDeadlineInfo(job);
-    const sourceState = job.sourceState === "official-unreachable" ? " · 暂未连通" : job.officialStatus === "unavailable" ? " · 无自有入口" : "";
+    const sourceState = job.sourceState === "official-protected"
+      ? " · 官网访问保护"
+      : job.sourceState === "official-unreachable"
+        ? " · 暂未连通"
+        : job.officialStatus === "unavailable" ? " · 无自有入口" : "";
     const checkedAt = job.officialStatus === "unavailable" ? job.officialVerifiedAt : job.lastChecked;
 
     return `
@@ -308,7 +318,7 @@
           <h5 title="${escapeHtml(job.role)}">${escapeHtml(job.role)}</h5>
           <p class="reputation">${escapeHtml(job.reputation)}</p>
           <div class="eligibility-evidence" aria-label="首页收录依据">
-            <p><span>专业证据</span>${escapeHtml(job.majorEvidence)}</p>
+            <p><span>力学匹配</span>${escapeHtml(job.fitEvidence || job.majorEvidence)}</p>
             <p><span>在招证据</span>${escapeHtml(job.officialEvidence)}</p>
           </div>
         </div>
@@ -362,7 +372,7 @@
     elements.officialLinkCount.textContent = officialJobs.length;
     elements.officialDeadlineCount.textContent = allJobs.filter((job) => job.deadlineStatus === "dated").length;
     if (elements.employeeReviewCount) {
-      elements.employeeReviewCount.textContent = allJobs.filter((job) => employeeReviews[job.id]).length;
+      elements.employeeReviewCount.textContent = allJobs.filter((job) => employeeReviews[job.id] || employeeReviews[job.companyReviewId]).length;
     }
     elements.sMetric.textContent = sJobs.length;
     elements.priorityCityMetric.textContent = priorityJobs.length;

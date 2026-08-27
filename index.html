@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="只展示招聘单位官网能够确认当前在招、且明确面向固体力学、力学或工程力学专业的岗位" />
+    <meta name="description" content="只展示企业官网能够确认当前在招、且工作内容明确属于结构、强度、振动、CAE、CFD或多物理场的岗位；不收录高校课题组" />
     <meta name="theme-color" content="#0b2727" />
     <title>固体力学博士招聘雷达</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b2727'/%3E%3Cpath d='M12 48 32 12l20 36H12Z' fill='none' stroke='%23d7e75a' stroke-width='4'/%3E%3Ccircle cx='32' cy='37' r='8' fill='%23d7e75a'/%3E%3C/svg%3E" />
@@ -46,7 +46,7 @@
           <p class="eyebrow"><span></span> 每日 08:30 官网严格核验</p>
           <h1>为固体力学博士<br /><em>筛出真正对口</em>的<br />工作机会。</h1>
           <p class="hero-intro">
-            首页只展示招聘单位官网能够确认<strong>当前仍在招</strong>，且专业要求明确包含<strong>固体力学、力学或工程力学</strong>的具体岗位。没有合格岗位的单位暂不展示，后续官网发布后再自动加入。
+            首页只展示企业官方招聘系统能够确认<strong>当前仍在招</strong>，且职责明确属于<strong>结构、强度、振动、有限元、CAE、CFD、热流体或多物理场</strong>的具体岗位。高校课题组、PI实验室和博士后项目组不收录。
           </p>
           <div class="hero-actions">
             <a class="primary-button" href="#jobs">查看今日机会 <span>↘</span></a>
@@ -98,7 +98,7 @@
         <article>
           <span>单位类型</span>
           <strong id="typeMetric">0</strong>
-          <small>高校 / 国企 / 私企等</small>
+          <small>上市 / 国企 / 外资 / 私企</small>
         </article>
       </section>
 
@@ -113,14 +113,14 @@
             <p class="eyebrow"><span></span> OPPORTUNITY INDEX</p>
             <h2>招聘机会索引</h2>
           </div>
-          <p>默认优先上海、合肥，再到江苏、浙江；每张卡片都公开展示专业匹配证据、在招依据和官网截止状态。</p>
+          <p>默认优先上海、合肥，再到江苏、浙江；每张卡片都公开展示力学工作证据、在招依据和官网截止状态。</p>
         </div>
 
         <div class="source-policy-note" role="note">
           <span class="policy-seal">严格收录</span>
           <p>
-            <strong>当前 <span id="officialLinkCount">—</span> 条均为招聘单位官网正在招聘的具体岗位或正式招聘公告。</strong>
-            仅有招聘首页、业务方向看似相关、专业要求不明确、岗位下架或截止的单位都不会出现在首页；其中 <b id="officialDeadlineCount">—</b> 条有官网明确截止日期。
+            <strong>当前 <span id="officialLinkCount">—</span> 条均为企业官方招聘系统正在招聘的具体岗位。</strong>
+            高校课题组、PI实验室、博士后项目组、仅有招聘首页、职责与力学无明确关系、岗位下架或截止的记录都不会出现在首页；其中 <b id="officialDeadlineCount">—</b> 条有官网明确截止日期。
           </p>
         </div>
 
@@ -186,11 +186,11 @@
           <p class="eyebrow"><span></span> UPDATE ROUTINE</p>
           <h2>每天早上，先替你跑一遍招聘网站。</h2>
           <p>
-            更新器先核验具体岗位页或正式招聘公告，再确认其专业要求明确包含固体力学、力学或工程力学。任何一项证据缺失，岗位都会先从首页移出并留在后台继续监测。
+            更新器先确认单位属于企业，再核验具体岗位页和当前投递状态，最后检查职责是否明确包含结构、强度、振动、有限元、CAE、CFD、热流体或多物理场工作。任一项缺失，岗位都会先从首页移出。
           </p>
           <div class="method-grid">
             <div><b>01</b><span>确认具体岗位在招</span></div>
-            <div><b>02</b><span>核对力学专业要求</span></div>
+            <div><b>02</b><span>核对力学工作内容</span></div>
             <div><b>03</b><span>更新截止与上下架</span></div>
           </div>
         </div>
@@ -200,7 +200,7 @@
     <footer class="site-footer shell">
       <div>
         <strong>固体力学博士招聘雷达</strong>
-        <p>首页只保留官网确认在招且明确面向力学专业的岗位；薪资与匿名职员反馈仅供个人求职参考。</p>
+        <p>首页只保留企业官网确认在招且工作内容明确涉及力学的岗位；不收录高校课题组，薪资与匿名职员反馈仅供个人求职参考。</p>
       </div>
       <div class="footer-meta">
         <span id="footerVersion">数据版本 —</span>
@@ -213,11 +213,12 @@
       <p class="eyebrow"><span></span> 更新机制</p>
       <h2>只有证据完整的岗位，才会进入首页。</h2>
       <p>
-        每天的任务只检查招聘单位自有官网及其自有招聘域名。首页记录必须同时通过“具体岗位、当前有效、力学专业匹配、单位官网”四项检查。
+        每天的任务只检查企业官网及其官方招聘系统。首页记录必须同时通过“企业单位、具体岗位、当前有效、力学工作匹配、官方招聘入口”五项检查。
       </p>
       <ul>
-        <li>官网必须能确认具体岗位或正式招聘公告，不把招聘首页、人才政策页或单位业务方向当成岗位。</li>
-        <li>专业要求必须明确写出固体力学、力学或工程力学；仅凭岗位名称推测适合的不收录。</li>
+        <li>高校课题组、PI实验室和博士后项目组是硬排除项，不参与首页候选。</li>
+        <li>企业官网必须能确认具体岗位，不把招聘首页、人才政策页或企业业务方向当成岗位。</li>
+        <li>岗位职责必须明确涉及结构、强度、振动、有限元、CAE、CFD、热流体或多物理场；不要求官网逐字写出“固体力学专业”。</li>
         <li>截止日期只在招聘单位官网明确写出时显示；否则标注“官网未公布”。</li>
         <li>官网写明“招满即止”或“长期有效”时，按原文状态标注。</li>
         <li>岗位下架、截止、官网无法验证或证据缺失时立即移出首页，但单位仍保留在后台监测名单中。</li>

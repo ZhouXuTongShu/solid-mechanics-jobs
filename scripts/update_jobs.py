@@ -59,6 +59,21 @@ OPEN_MARKERS = (
     "投递简历",
     "查看职位",
 )
+ENTERPRISE_TYPES = {"央国企", "私营企业", "外资企业", "上市企业"}
+ACADEMIC_GROUP_MARKERS = (
+    "课题组",
+    "实验室",
+    "博士后",
+    "项目组",
+    "教授团队",
+    "大学·",
+)
+PROTECTED_PAGE_MARKERS = (
+    "just a moment",
+    "enable javascript and cookies to continue",
+    "cf-chl",
+    "challenge-platform",
+)
 ROLE_KEYWORDS = (
     "固体力学",
     "计算力学",
@@ -101,10 +116,35 @@ HIGH_MATCH_KEYWORDS = (
     "结构动力学",
     "求解器",
 )
-STRICT_MAJOR_TERMS = ("固体力学", "工程力学")
-STRICT_MAJOR_PATTERNS = (
-    re.compile(r"力学(?:类|专业|学科|背景)"),
-    re.compile(r"(?:专业|学科|背景|要求)[^。；;]{0,30}力学"),
+MECHANICS_EVIDENCE_TERMS = (
+    "固体力学",
+    "工程力学",
+    "计算力学",
+    "结构力学",
+    "有限元",
+    "fea",
+    "cae",
+    "cfd",
+    "结构仿真",
+    "结构强度",
+    "高性能结构",
+    "复材工程结构",
+    "振动控制",
+    "结构振动",
+    "振动噪声",
+    "疲劳",
+    "断裂",
+    "热/应力仿真",
+    "热应力仿真",
+    "应力仿真",
+    "力、热仿真",
+    "力/热仿真",
+    "流体仿真",
+    "流动与传热",
+    "流体力学",
+    "热管理",
+    "流固耦合",
+    "多物理场",
 )
 RECRUITMENT_URL_MARKERS = (
     "career",
@@ -224,12 +264,25 @@ def load_watch_sources() -> list[dict[str, Any]]:
     return payload if isinstance(payload, list) else payload.get("sources", [])
 
 
+def is_enterprise_record(record: dict[str, Any]) -> bool:
+    """Hard gate: academic groups and postdoc teams never reach the homepage."""
+    if record.get("employerType") not in ENTERPRISE_TYPES:
+        return False
+    identity = f"{record.get('company', '')} {record.get('role', '')}".casefold()
+    return not any(marker.casefold() in identity for marker in ACADEMIC_GROUP_MARKERS)
+
+
+def contains_mechanics_evidence(value: str) -> bool:
+    normalized = re.sub(r"\s+", "", value.casefold())
+    return any(term.casefold() in normalized for term in MECHANICS_EVIDENCE_TERMS)
+
+
 def load_candidates() -> list[dict[str, Any]]:
     payload = json.loads(CANDIDATE_FILE.read_text(encoding="utf-8"))
     candidates = payload if isinstance(payload, list) else payload.get("candidates", [])
     if not isinstance(candidates, list):
         raise ValueError(f"Candidate catalog in {CANDIDATE_FILE} is not a list")
-    required = {"id", "company", "role", "city", "url", "majorEvidence", "officialEvidence", "evidenceAll"}
+    required = {"id", "company", "role", "city", "url", "fitEvidence", "officialEvidence", "evidenceAll"}
     seen_ids: set[str] = set()
     for index, candidate in enumerate(candidates, start=1):
         if not isinstance(candidate, dict):
@@ -243,10 +296,19 @@ def load_candidates() -> list[dict[str, Any]]:
         seen_ids.add(candidate_id)
         if candidate.get("officialKind") != "employer-job":
             raise ValueError(f"Candidate {candidate_id} must link to an employer-owned job page")
+        if not is_enterprise_record(candidate):
+            raise ValueError(f"Candidate {candidate_id} is not an allowed enterprise record")
         if not str(candidate.get("url", "")).startswith(("https://", "http://")):
             raise ValueError(f"Candidate {candidate_id} has an invalid official URL")
-        if "力学" not in str(candidate.get("majorEvidence", "")):
-            raise ValueError(f"Candidate {candidate_id} lacks explicit mechanics-major evidence")
+        evidence_text = " ".join(
+            [
+                str(candidate.get("role", "")),
+                str(candidate.get("fitEvidence", "")),
+                " ".join(str(item) for item in candidate.get("keywords", [])),
+            ]
+        )
+        if not contains_mechanics_evidence(evidence_text):
+            raise ValueError(f"Candidate {candidate_id} lacks explicit mechanics-work evidence")
         if not isinstance(candidate.get("evidenceAll"), list) or not candidate["evidenceAll"]:
             raise ValueError(f"Candidate {candidate_id} has no page evidence checks")
     return candidates
@@ -282,6 +344,25 @@ def fetch_page(url: str, timeout: float) -> FetchResult:
             status_code = getattr(response, "status", 200)
             final_url = response.geturl()
     except urllib.error.HTTPError as exc:
+        # Some first-party career sites return a Cloudflare/browser challenge as
+        # HTTP 403 to automated checks. Preserve the response body so a curated,
+        # recently human-verified candidate can use the narrow protected-page
+        # fallback in candidate_to_live_job(). An ordinary 403 remains a failure.
+        body = exc.read(MAX_RESPONSE_BYTES)
+        content_type = exc.headers.get("Content-Type", "") if exc.headers else ""
+        source = decode_body(body, content_type)
+        lowered = source.casefold()
+        if exc.code in {403, 429} and any(marker in lowered for marker in PROTECTED_PAGE_MARKERS):
+            return FetchResult(
+                url=exc.geturl() or url,
+                ok=True,
+                status_code=exc.code,
+                content_type=content_type,
+                text=re.sub(r"<[^>]+>", " ", source),
+                source_text=source,
+                content_hash=hashlib.sha256(body).hexdigest()[:16],
+                error=f"HTTP {exc.code} access protection",
+            )
         return FetchResult(url=url, ok=False, status_code=exc.code, error=f"HTTP {exc.code}")
     except (urllib.error.URLError, TimeoutError, ssl.SSLError) as exc:
         return FetchResult(url=url, ok=False, error=str(exc.reason if hasattr(exc, "reason") else exc))
@@ -388,11 +469,24 @@ def role_match(title: str) -> str:
     return "B"
 
 
-def contains_strict_major_evidence(page_text: str) -> bool:
-    normalized = re.sub(r"\s+", "", page_text.casefold())
-    if any(term.casefold() in normalized for term in STRICT_MAJOR_TERMS):
-        return True
-    return any(pattern.search(normalized) for pattern in STRICT_MAJOR_PATTERNS)
+def is_access_protection_page(result: FetchResult) -> bool:
+    page = f"{result.title} {result.text} {result.source_text}".casefold()
+    return any(marker in page for marker in PROTECTED_PAGE_MARKERS)
+
+
+def protected_fallback_is_current(candidate: dict[str, Any], today: dt.date) -> bool:
+    if candidate.get("verificationMode") != "protected-official-page":
+        return False
+    manual_date = candidate.get("manualVerifiedAt")
+    fallback_until = candidate.get("protectedFallbackUntil")
+    try:
+        return bool(
+            manual_date
+            and fallback_until
+            and dt.date.fromisoformat(str(manual_date)) <= today <= dt.date.fromisoformat(str(fallback_until))
+        )
+    except ValueError:
+        return False
 
 
 def candidate_to_live_job(
@@ -402,16 +496,19 @@ def candidate_to_live_job(
     if not result.ok:
         return None, "unreachable"
 
+    protected_fallback = is_access_protection_page(result) and protected_fallback_is_current(candidate, today)
+
     # Some employer sites render the job body from a JavaScript object or keep it
     # in an iframe/comment. Curated candidates may use the downloaded first-party
     # source as evidence; automatic discovery below still relies on visible text.
     verification_text = f"{result.text} {html.unescape(result.source_text)}"
     page_text = re.sub(r"\s+", " ", verification_text).casefold()
-    missing = [term for term in candidate.get("evidenceAll", []) if term.casefold() not in page_text]
-    if missing:
-        return None, "evidence-missing"
-    if any(marker.casefold() in page_text for marker in EXPIRED_MARKERS):
-        return None, "closed-marker"
+    if not protected_fallback:
+        missing = [term for term in candidate.get("evidenceAll", []) if term.casefold() not in page_text]
+        if missing:
+            return None, "evidence-missing"
+        if any(marker.casefold() in page_text for marker in EXPIRED_MARKERS):
+            return None, "closed-marker"
 
     deadline_raw = candidate.get("deadline")
     if deadline_raw:
@@ -421,8 +518,10 @@ def candidate_to_live_job(
         except ValueError:
             return None, "invalid-deadline"
 
-    if not candidate.get("majorEvidence") or not candidate.get("officialEvidence"):
+    if not candidate.get("fitEvidence") or not candidate.get("officialEvidence"):
         return None, "catalog-evidence-missing"
+    if not is_enterprise_record(candidate):
+        return None, "non-enterprise"
 
     job = {key: value for key, value in candidate.items() if key != "evidenceAll"}
     job.update(
@@ -430,13 +529,17 @@ def candidate_to_live_job(
             "status": "open",
             "officialStatus": "verified",
             "officialKind": "employer-job",
-            "officialVerifiedAt": today.isoformat(),
+            "officialVerifiedAt": candidate.get("manualVerifiedAt", today.isoformat())
+            if protected_fallback
+            else today.isoformat(),
             "lastChecked": today.isoformat(),
-            "sourceState": "official-verified",
+            "sourceState": "official-protected" if protected_fallback else "official-verified",
             "contentHash": result.content_hash,
         }
     )
-    if result.title:
+    if protected_fallback:
+        job["verificationNote"] = "官网对自动访问启用保护；当前状态沿用最近一次人工浏览器核验，并继续每日检查链接与截止日。"
+    elif result.title:
         job["pageTitle"] = result.title[:180]
     return job, "verified-open"
 
@@ -450,6 +553,8 @@ def collect_discovery_links(
     links: list[tuple[dict[str, Any], str, str]] = []
     seen = set(known_urls)
     for source in sources:
+        if not is_enterprise_record(source):
+            continue
         result = source_results.get(source.get("url", ""))
         if not result or not result.ok or not result.links:
             continue
@@ -476,20 +581,24 @@ def collect_discovery_links(
 def strict_discovered_job(
     source: dict[str, Any], title: str, url: str, result: FetchResult, today: dt.date
 ) -> dict[str, Any] | None:
-    """Publish automatic discoveries only when the detail page proves major fit and active hiring."""
+    """Publish only enterprise detail pages that prove mechanics work and active hiring."""
     if not result.ok or not result.text:
+        return None
+    if not is_enterprise_record(source):
         return None
     page_text = re.sub(r"\s+", " ", result.text)
     lowered = page_text.casefold()
+    if "2027" not in f"{title} {page_text}":
+        return None
     if any(marker.casefold() in lowered for marker in EXPIRED_MARKERS):
         return None
-    if not contains_strict_major_evidence(page_text):
+    if not contains_mechanics_evidence(f"{title} {page_text}"):
         return None
     if not any(marker.casefold() in lowered for marker in (*OPEN_MARKERS, "招聘", "招满为止", "长期")):
         return None
 
-    exact_terms = [term for term in STRICT_MAJOR_TERMS if term in page_text]
-    major_text = "、".join(exact_terms) if exact_terms else "力学专业/力学类"
+    exact_terms = [term for term in MECHANICS_EVIDENCE_TERMS if term.casefold() in page_text.casefold()]
+    mechanics_text = "、".join(exact_terms[:4]) if exact_terms else "结构/仿真类力学工作"
     title_lowered = title.casefold()
     return {
         "id": discovered_id(source.get("company", "待确认单位"), title, url),
@@ -514,8 +623,8 @@ def strict_discovered_job(
         "officialVerifiedAt": today.isoformat(),
         "deadlineStatus": "not-published",
         "deadlineTracking": "detail",
-        "majorEvidence": f"官网岗位详情明确出现：{major_text}",
-        "officialEvidence": "官网详情页同时存在具体岗位标题、力学专业要求和有效招聘/投递信号",
+        "fitEvidence": f"官网岗位职责或要求明确出现：{mechanics_text}",
+        "officialEvidence": "企业官网详情页同时存在具体岗位标题、力学相关工作内容和有效招聘/投递信号",
         "contentHash": result.content_hash,
         "pageTitle": result.title[:180] if result.title else title,
     }
@@ -563,7 +672,7 @@ def main() -> int:
         return 0
 
     candidates = load_candidates()
-    watch_sources = [] if args.skip_discovery else load_watch_sources()
+    watch_sources = [] if args.skip_discovery else [source for source in load_watch_sources() if is_enterprise_record(source)]
     candidate_urls = [candidate.get("url", "") for candidate in candidates]
     urls = list(candidate_urls)
     urls.extend(source.get("url", "") for source in watch_sources)
@@ -638,9 +747,19 @@ def main() -> int:
         "excludedCandidates": len(candidates) - (len(live_jobs) - len(new_jobs)),
         "exclusionReasons": {key: value for key, value in exclusion_reasons.items() if key != "verified-open"},
     }
-    data["meta"]["homepagePolicy"] = "只展示招聘单位官网能够确认的当前在招具体岗位；专业要求须明确包含固体力学、力学或工程力学。"
+    data["meta"]["homepagePolicy"] = (
+        "只展示企业官方招聘系统能够确认的当前在招具体岗位；职责须明确属于结构、强度、振动、"
+        "有限元、CAE、CFD、热流体或多物理场等力学方向。高校课题组、PI实验室和博士后项目组一律排除。"
+    )
+    data["meta"]["officialLinkPolicy"] = (
+        "只允许企业自有域名、企业自有招聘子域名，或能够明确归属于该企业的官方招聘系统；"
+        "不使用高校转载页、综合招聘平台或聚合站作为跳转入口。"
+    )
+    data["meta"]["officialLinksVerifiedAt"] = today.isoformat()
     data["meta"]["candidateCount"] = len(candidates)
-    data["meta"]["monitoredSourceCount"] = len(load_watch_sources())
+    data["meta"]["monitoredSourceCount"] = len(
+        [source for source in load_watch_sources() if is_enterprise_record(source)]
+    )
     data["meta"]["officialLinkCount"] = len(data["jobs"])
     data["meta"]["officialUnavailableCount"] = 0
     data["meta"]["officialDeadlineCount"] = sum(job.get("deadlineStatus") == "dated" for job in data["jobs"])
