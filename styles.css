@@ -602,6 +602,7 @@ select {
 }
 
 .source-policy-note b,
+.source-policy-note strong span,
 .review-policy-note b { color: var(--green); }
 
 .type-tabs {
@@ -695,7 +696,7 @@ select {
 
 .select-group {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 12px;
   margin-top: 14px;
 }
@@ -900,6 +901,35 @@ select {
   line-height: 1.55;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
+}
+
+.eligibility-evidence {
+  display: grid;
+  gap: 5px;
+  margin-top: 10px;
+}
+
+.eligibility-evidence p {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  color: var(--ink-2);
+  font-size: 9px;
+  line-height: 1.55;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.eligibility-evidence span {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  color: var(--green);
+  background: rgba(95, 174, 138, 0.12);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
 }
 
 .location-block,

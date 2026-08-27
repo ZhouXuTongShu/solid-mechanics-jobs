@@ -29,6 +29,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DATA_FILE = PROJECT_ROOT / "data" / "jobs.js"
 JSON_MIRROR = PROJECT_ROOT / "data" / "jobs.json"
 WATCH_FILE = PROJECT_ROOT / "data" / "watch_sources.json"
+CANDIDATE_FILE = PROJECT_ROOT / "data" / "job_candidates.json"
 MAX_RESPONSE_BYTES = 2_500_000
 CHINA_TIMEZONE = dt.timezone(dt.timedelta(hours=8))
 MIN_REACHABLE_DIVISOR = 5
@@ -100,6 +101,11 @@ HIGH_MATCH_KEYWORDS = (
     "结构动力学",
     "求解器",
 )
+STRICT_MAJOR_TERMS = ("固体力学", "工程力学")
+STRICT_MAJOR_PATTERNS = (
+    re.compile(r"力学(?:类|专业|学科|背景)"),
+    re.compile(r"(?:专业|学科|背景|要求)[^。；;]{0,30}力学"),
+)
 RECRUITMENT_URL_MARKERS = (
     "career",
     "careers",
@@ -115,39 +121,6 @@ RECRUITMENT_URL_MARKERS = (
     "rczp",
     "xyzp",
 )
-
-CHINESE_DEADLINE_RE = re.compile(
-    r"(?:申请截止|投递截止|网申截止|报名截止|截止日期|截止时间|申请截至|投递截至)"
-    r"[^0-9]{0,24}(20\d{2})[年./-](\d{1,2})[月./-](\d{1,2})日?",
-    re.I,
-)
-ENGLISH_DEADLINE_RE = re.compile(
-    r"Apply\s+By\s+(?:(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),?\s+)?"
-    r"(January|February|March|April|May|June|July|August|September|October|November|December)"
-    r"\s+(\d{1,2}),\s+(20\d{2})",
-    re.I,
-)
-ENGLISH_MONTHS = {
-    month.lower(): index
-    for index, month in enumerate(
-        (
-            "January",
-            "February",
-            "March",
-            "April",
-            "May",
-            "June",
-            "July",
-            "August",
-            "September",
-            "October",
-            "November",
-            "December",
-        ),
-        start=1,
-    )
-}
-
 
 class PageParser(HTMLParser):
     def __init__(self) -> None:
@@ -212,6 +185,7 @@ class FetchResult:
     content_type: str = ""
     title: str = ""
     text: str = ""
+    source_text: str = ""
     links: list[tuple[str, str]] | None = None
     content_hash: str = ""
     error: str = ""
@@ -248,6 +222,34 @@ def load_watch_sources() -> list[dict[str, Any]]:
         return []
     payload = json.loads(WATCH_FILE.read_text(encoding="utf-8"))
     return payload if isinstance(payload, list) else payload.get("sources", [])
+
+
+def load_candidates() -> list[dict[str, Any]]:
+    payload = json.loads(CANDIDATE_FILE.read_text(encoding="utf-8"))
+    candidates = payload if isinstance(payload, list) else payload.get("candidates", [])
+    if not isinstance(candidates, list):
+        raise ValueError(f"Candidate catalog in {CANDIDATE_FILE} is not a list")
+    required = {"id", "company", "role", "city", "url", "majorEvidence", "officialEvidence", "evidenceAll"}
+    seen_ids: set[str] = set()
+    for index, candidate in enumerate(candidates, start=1):
+        if not isinstance(candidate, dict):
+            raise ValueError(f"Candidate #{index} is not an object")
+        missing = sorted(required - candidate.keys())
+        if missing:
+            raise ValueError(f"Candidate #{index} is missing fields: {', '.join(missing)}")
+        candidate_id = str(candidate["id"])
+        if candidate_id in seen_ids:
+            raise ValueError(f"Duplicate candidate id: {candidate_id}")
+        seen_ids.add(candidate_id)
+        if candidate.get("officialKind") != "employer-job":
+            raise ValueError(f"Candidate {candidate_id} must link to an employer-owned job page")
+        if not str(candidate.get("url", "")).startswith(("https://", "http://")):
+            raise ValueError(f"Candidate {candidate_id} has an invalid official URL")
+        if "力学" not in str(candidate.get("majorEvidence", "")):
+            raise ValueError(f"Candidate {candidate_id} lacks explicit mechanics-major evidence")
+        if not isinstance(candidate.get("evidenceAll"), list) or not candidate["evidenceAll"]:
+            raise ValueError(f"Candidate {candidate_id} has no page evidence checks")
+    return candidates
 
 
 def decode_body(raw: bytes, content_type: str) -> str:
@@ -310,6 +312,7 @@ def fetch_page(url: str, timeout: float) -> FetchResult:
             status_code=status_code,
             content_type=content_type,
             text=visible,
+            source_text=source,
             content_hash=digest,
         )
     return FetchResult(
@@ -319,6 +322,7 @@ def fetch_page(url: str, timeout: float) -> FetchResult:
         content_type=content_type,
         title=parser.title,
         text=parser.text,
+        source_text=source,
         links=parser.links,
         content_hash=digest,
     )
@@ -336,104 +340,6 @@ def fetch_many(urls: Iterable[str], timeout: float, workers: int) -> dict[str, F
             except Exception as exc:
                 results[original_url] = FetchResult(url=original_url, ok=False, error=str(exc))
     return results
-
-
-def apply_deadline(job: dict[str, Any], today: dt.date) -> bool:
-    deadline_raw = job.get("deadline")
-    if not deadline_raw:
-        return False
-    try:
-        deadline = dt.date.fromisoformat(deadline_raw)
-    except ValueError:
-        return False
-    if deadline < today and job.get("status") != "closed":
-        job["previousStatus"] = job.get("status")
-        job["status"] = "closed"
-        job["closedReason"] = "deadline"
-        return True
-    return False
-
-
-def update_deadline_from_official_page(job: dict[str, Any], page_text: str) -> bool:
-    """Extract only dates explicitly attached to a deadline label on a job detail page."""
-    if job.get("deadlineTracking") != "detail" or not page_text:
-        return False
-
-    deadline: dt.date | None = None
-    match = CHINESE_DEADLINE_RE.search(page_text)
-    if match:
-        try:
-            deadline = dt.date(int(match.group(1)), int(match.group(2)), int(match.group(3)))
-        except ValueError:
-            deadline = None
-
-    if deadline is None:
-        match = ENGLISH_DEADLINE_RE.search(page_text)
-        if match:
-            try:
-                deadline = dt.date(int(match.group(3)), ENGLISH_MONTHS[match.group(1).lower()], int(match.group(2)))
-            except (KeyError, ValueError):
-                deadline = None
-
-    if deadline is not None:
-        value = deadline.isoformat()
-        changed = job.get("deadline") != value or job.get("deadlineStatus") != "dated"
-        job["deadline"] = value
-        job["deadlineStatus"] = "dated"
-        job["deadlineSource"] = "招聘单位官网"
-        job["deadlineEvidence"] = "官网明确标注截止日期"
-        return changed
-
-    if any(marker in page_text for marker in ("招满即止", "长期有效")) and not job.get("deadline"):
-        changed = job.get("deadlineStatus") != "rolling"
-        job["deadlineStatus"] = "rolling"
-        job["deadlineSource"] = "招聘单位官网"
-        job["deadlineEvidence"] = "官网标注招满即止或长期有效"
-        return changed
-    return False
-
-
-def verify_job(job: dict[str, Any], result: FetchResult, today: dt.date) -> bool:
-    changed = update_deadline_from_official_page(job, result.text) if result.ok else False
-    changed = apply_deadline(job, today) or changed
-    if not result.ok:
-        if job.get("sourceState") != "official-unreachable" or job.get("lastError") != result.error:
-            changed = True
-        job["sourceState"] = "official-unreachable"
-        job["lastError"] = result.error[:180]
-        job["lastAttempt"] = today.isoformat()
-        return changed
-
-    old_hash = job.get("contentHash")
-    if old_hash and result.content_hash and old_hash != result.content_hash:
-        job["changedAt"] = today.isoformat()
-        changed = True
-    if result.content_hash and result.content_hash != old_hash:
-        job["contentHash"] = result.content_hash
-        changed = True
-
-    if job.get("lastChecked") != today.isoformat() or job.get("sourceState") != "official-verified":
-        changed = True
-    job["lastChecked"] = today.isoformat()
-    job["sourceState"] = "official-verified"
-    job.pop("lastError", None)
-    job.pop("lastAttempt", None)
-    if result.title:
-        job["pageTitle"] = result.title[:180]
-
-    page_text = result.text.casefold()
-    if any(marker.casefold() in page_text for marker in EXPIRED_MARKERS):
-        if job.get("status") != "closed":
-            job["previousStatus"] = job.get("status")
-            job["status"] = "closed"
-            job["closedReason"] = "page-marker"
-            changed = True
-    elif job.get("status") == "closed" and job.get("closedReason") == "page-marker":
-        if any(marker.casefold() in page_text for marker in OPEN_MARKERS):
-            job["status"] = job.pop("previousStatus", "open")
-            job.pop("closedReason", None)
-            changed = True
-    return changed
 
 
 def canonical_url(url: str) -> str:
@@ -482,68 +388,137 @@ def role_match(title: str) -> str:
     return "B"
 
 
-def discover_jobs(
-    sources: list[dict[str, Any]],
-    results: dict[str, FetchResult],
-    existing_jobs: list[dict[str, Any]],
-    today: dt.date,
-) -> list[dict[str, Any]]:
-    known_urls = {canonical_url(job.get("url", "")) for job in existing_jobs}
-    known_pairs = {(job.get("company", "").casefold(), job.get("role", "").casefold()) for job in existing_jobs}
-    discovered: list[dict[str, Any]] = []
+def contains_strict_major_evidence(page_text: str) -> bool:
+    normalized = re.sub(r"\s+", "", page_text.casefold())
+    if any(term.casefold() in normalized for term in STRICT_MAJOR_TERMS):
+        return True
+    return any(pattern.search(normalized) for pattern in STRICT_MAJOR_PATTERNS)
 
+
+def candidate_to_live_job(
+    candidate: dict[str, Any], result: FetchResult, today: dt.date
+) -> tuple[dict[str, Any] | None, str]:
+    """Return a homepage job only when its official page still proves the opening."""
+    if not result.ok:
+        return None, "unreachable"
+
+    # Some employer sites render the job body from a JavaScript object or keep it
+    # in an iframe/comment. Curated candidates may use the downloaded first-party
+    # source as evidence; automatic discovery below still relies on visible text.
+    verification_text = f"{result.text} {html.unescape(result.source_text)}"
+    page_text = re.sub(r"\s+", " ", verification_text).casefold()
+    missing = [term for term in candidate.get("evidenceAll", []) if term.casefold() not in page_text]
+    if missing:
+        return None, "evidence-missing"
+    if any(marker.casefold() in page_text for marker in EXPIRED_MARKERS):
+        return None, "closed-marker"
+
+    deadline_raw = candidate.get("deadline")
+    if deadline_raw:
+        try:
+            if dt.date.fromisoformat(deadline_raw) < today:
+                return None, "deadline-passed"
+        except ValueError:
+            return None, "invalid-deadline"
+
+    if not candidate.get("majorEvidence") or not candidate.get("officialEvidence"):
+        return None, "catalog-evidence-missing"
+
+    job = {key: value for key, value in candidate.items() if key != "evidenceAll"}
+    job.update(
+        {
+            "status": "open",
+            "officialStatus": "verified",
+            "officialKind": "employer-job",
+            "officialVerifiedAt": today.isoformat(),
+            "lastChecked": today.isoformat(),
+            "sourceState": "official-verified",
+            "contentHash": result.content_hash,
+        }
+    )
+    if result.title:
+        job["pageTitle"] = result.title[:180]
+    return job, "verified-open"
+
+
+def collect_discovery_links(
+    sources: list[dict[str, Any]],
+    source_results: dict[str, FetchResult],
+    known_urls: set[str],
+) -> list[tuple[dict[str, Any], str, str]]:
+    """Collect possible detail pages; no candidate is published before detail verification."""
+    links: list[tuple[dict[str, Any], str, str]] = []
+    seen = set(known_urls)
     for source in sources:
-        source_url = source.get("url", "")
-        result = results.get(source_url)
+        result = source_results.get(source.get("url", ""))
         if not result or not result.ok or not result.links:
             continue
-        company = source.get("company", "待确认单位")
         for anchor_text, href in result.links:
-            clean_title = re.sub(r"\s+", " ", anchor_text).strip()
-            lowered = clean_title.casefold()
-            if len(clean_title) < 4 or len(clean_title) > 90:
+            title = re.sub(r"\s+", " ", anchor_text).strip()
+            lowered = title.casefold()
+            if len(title) < 4 or len(title) > 90:
                 continue
             if not any(keyword.casefold() in lowered for keyword in ROLE_KEYWORDS):
                 continue
             absolute_url = urllib.parse.urljoin(result.url, href)
             if not absolute_url.startswith(("http://", "https://")):
                 continue
-            if not is_employer_owned_link(source, absolute_url):
-                continue
-            if not looks_like_recruitment_link(absolute_url):
+            if not is_employer_owned_link(source, absolute_url) or not looks_like_recruitment_link(absolute_url):
                 continue
             canonical = canonical_url(absolute_url)
-            pair = (company.casefold(), clean_title.casefold())
-            if canonical in known_urls or pair in known_pairs:
+            if canonical in seen:
                 continue
-            job = {
-                "id": discovered_id(company, clean_title, absolute_url),
-                "company": company,
-                "employerType": source.get("employerType", "私营企业"),
-                "role": clean_title,
-                "city": source.get("city", "待确认"),
-                "salaryMin": 0,
-                "salaryMax": 0,
-                "salaryText": "待沟通",
-                "match": role_match(clean_title),
-                "status": "open",
-                "priority": 2,
-                "keywords": [keyword for keyword in ROLE_KEYWORDS if keyword.casefold() in lowered][:3],
-                "reputation": "自动发现的新岗位，尚未完成人工背调；请以官方页面为准。",
-                "url": absolute_url,
-                "lastChecked": today.isoformat(),
-                "discoveredAt": today.isoformat(),
-                "sourceState": "official-discovered",
-                "officialStatus": "verified",
-                "officialKind": "employer-job",
-                "officialVerifiedAt": today.isoformat(),
-                "deadlineStatus": "not-published",
-                "deadlineTracking": "detail",
-            }
-            discovered.append(job)
-            known_urls.add(canonical)
-            known_pairs.add(pair)
-    return discovered
+            seen.add(canonical)
+            links.append((source, title, absolute_url))
+    return links
+
+
+def strict_discovered_job(
+    source: dict[str, Any], title: str, url: str, result: FetchResult, today: dt.date
+) -> dict[str, Any] | None:
+    """Publish automatic discoveries only when the detail page proves major fit and active hiring."""
+    if not result.ok or not result.text:
+        return None
+    page_text = re.sub(r"\s+", " ", result.text)
+    lowered = page_text.casefold()
+    if any(marker.casefold() in lowered for marker in EXPIRED_MARKERS):
+        return None
+    if not contains_strict_major_evidence(page_text):
+        return None
+    if not any(marker.casefold() in lowered for marker in (*OPEN_MARKERS, "招聘", "招满为止", "长期")):
+        return None
+
+    exact_terms = [term for term in STRICT_MAJOR_TERMS if term in page_text]
+    major_text = "、".join(exact_terms) if exact_terms else "力学专业/力学类"
+    title_lowered = title.casefold()
+    return {
+        "id": discovered_id(source.get("company", "待确认单位"), title, url),
+        "company": source.get("company", "待确认单位"),
+        "employerType": source.get("employerType", "私营企业"),
+        "role": title,
+        "city": source.get("city", "待确认"),
+        "salaryMin": 0,
+        "salaryMax": 0,
+        "salaryText": "官网未披露",
+        "match": role_match(title),
+        "status": "open",
+        "priority": 2,
+        "keywords": [keyword for keyword in ROLE_KEYWORDS if keyword.casefold() in title_lowered][:3],
+        "reputation": "自动发现并通过官网岗位详情严格核验；团队环境与压力需在面试中确认。",
+        "url": url,
+        "lastChecked": today.isoformat(),
+        "discoveredAt": today.isoformat(),
+        "sourceState": "official-verified",
+        "officialStatus": "verified",
+        "officialKind": "employer-job",
+        "officialVerifiedAt": today.isoformat(),
+        "deadlineStatus": "not-published",
+        "deadlineTracking": "detail",
+        "majorEvidence": f"官网岗位详情明确出现：{major_text}",
+        "officialEvidence": "官网详情页同时存在具体岗位标题、力学专业要求和有效招聘/投递信号",
+        "contentHash": result.content_hash,
+        "pageTitle": result.title[:180] if result.title else title,
+    }
 
 
 def write_dataset(data: dict[str, Any]) -> None:
@@ -587,13 +562,14 @@ def main() -> int:
         print(f"Already refreshed on {today.isoformat()} Asia/Shanghai; skipping backup run")
         return 0
 
+    candidates = load_candidates()
     watch_sources = [] if args.skip_discovery else load_watch_sources()
-    job_urls = [job.get("url", "") for job in data["jobs"]]
-    urls = list(job_urls)
+    candidate_urls = [candidate.get("url", "") for candidate in candidates]
+    urls = list(candidate_urls)
     urls.extend(source.get("url", "") for source in watch_sources)
     results = fetch_many(urls, timeout=args.timeout, workers=args.workers)
 
-    unique_official_urls = {url for url in job_urls if url}
+    unique_official_urls = {url for url in candidate_urls if url}
     reachable_probe = sum(bool(results.get(url) and results[url].ok) for url in unique_official_urls)
     minimum_reachable = max(1, (len(unique_official_urls) + MIN_REACHABLE_DIVISOR - 1) // MIN_REACHABLE_DIVISOR)
     if unique_official_urls and reachable_probe < minimum_reachable:
@@ -604,57 +580,84 @@ def main() -> int:
         )
         return 2
 
-    changed_jobs = 0
+    old_jobs = data.get("jobs", [])
+    live_jobs: list[dict[str, Any]] = []
+    exclusion_reasons: dict[str, int] = {}
     reachable = 0
     unreachable = 0
-    official_unavailable = 0
-    for job in data["jobs"]:
-        job_url = job.get("url", "")
-        if not job_url:
-            official_unavailable += 1
-            changed = apply_deadline(job, today)
-            if job.get("sourceState") != "official-unavailable" or job.get("officialStatus") != "unavailable":
-                job["sourceState"] = "official-unavailable"
-                job["officialStatus"] = "unavailable"
-                changed = True
-            if changed:
-                changed_jobs += 1
-            continue
-        result = results.get(job_url, FetchResult(url=job_url, ok=False, error="missing result"))
+    for candidate in candidates:
+        candidate_url = candidate.get("url", "")
+        result = results.get(candidate_url, FetchResult(url=candidate_url, ok=False, error="missing result"))
         reachable += int(result.ok)
         unreachable += int(not result.ok)
-        if verify_job(job, result, today):
-            changed_jobs += 1
+        job, reason = candidate_to_live_job(candidate, result, today)
+        exclusion_reasons[reason] = exclusion_reasons.get(reason, 0) + 1
+        if job:
+            live_jobs.append(job)
 
-    new_jobs = discover_jobs(watch_sources, results, data["jobs"], today)
-    if new_jobs:
-        data["jobs"].extend(new_jobs)
+    discovered_links = collect_discovery_links(
+        watch_sources,
+        results,
+        {canonical_url(candidate.get("url", "")) for candidate in candidates},
+    )
+    detail_results = fetch_many(
+        [url for _, _, url in discovered_links], timeout=args.timeout, workers=args.workers
+    )
+    new_jobs: list[dict[str, Any]] = []
+    known_pairs = {(job.get("company", "").casefold(), job.get("role", "").casefold()) for job in live_jobs}
+    for source, title, url in discovered_links:
+        discovered = strict_discovered_job(
+            source,
+            title,
+            url,
+            detail_results.get(url, FetchResult(url=url, ok=False, error="missing result")),
+            today,
+        )
+        if not discovered:
+            continue
+        pair = (discovered.get("company", "").casefold(), discovered.get("role", "").casefold())
+        if pair in known_pairs:
+            continue
+        live_jobs.append(discovered)
+        new_jobs.append(discovered)
+        known_pairs.add(pair)
+
+    old_by_id = {job.get("id"): job for job in old_jobs}
+    new_by_id = {job.get("id"): job for job in live_jobs}
+    changed_jobs = sum(old_by_id.get(job_id) != new_by_id.get(job_id) for job_id in old_by_id.keys() | new_by_id.keys())
+    data["jobs"] = live_jobs
 
     bump_version(data.setdefault("meta", {}), now)
     data["meta"]["lastRun"] = {
         "reachable": reachable,
         "unreachable": unreachable,
-        "officialUnavailable": official_unavailable,
+        "officialUnavailable": 0,
         "changedJobs": changed_jobs,
         "discoveredJobs": len(new_jobs),
+        "verifiedOpenJobs": len(live_jobs),
+        "excludedCandidates": len(candidates) - (len(live_jobs) - len(new_jobs)),
+        "exclusionReasons": {key: value for key, value in exclusion_reasons.items() if key != "verified-open"},
     }
-    data["meta"]["officialLinkCount"] = sum(bool(job.get("url")) for job in data["jobs"])
-    data["meta"]["officialUnavailableCount"] = sum(not bool(job.get("url")) for job in data["jobs"])
+    data["meta"]["homepagePolicy"] = "只展示招聘单位官网能够确认的当前在招具体岗位；专业要求须明确包含固体力学、力学或工程力学。"
+    data["meta"]["candidateCount"] = len(candidates)
+    data["meta"]["monitoredSourceCount"] = len(load_watch_sources())
+    data["meta"]["officialLinkCount"] = len(data["jobs"])
+    data["meta"]["officialUnavailableCount"] = 0
     data["meta"]["officialDeadlineCount"] = sum(job.get("deadlineStatus") == "dated" for job in data["jobs"])
 
     if args.dry_run:
         print(
-            f"Dry run: {len(data['jobs'])} jobs, {reachable} official pages reachable, "
-            f"{unreachable} unreachable, {official_unavailable} unavailable, "
-            f"{changed_jobs} changed, {len(new_jobs)} discovered"
+            f"Dry run: {len(data['jobs'])} verified-open jobs, {reachable} candidate checks reachable, "
+            f"{unreachable} unreachable, {len(candidates) - (len(live_jobs) - len(new_jobs))} excluded, "
+            f"{changed_jobs} changed, {len(new_jobs)} strictly discovered"
         )
         return 0
 
     write_dataset(data)
     print(
-        f"Updated {len(data['jobs'])} jobs: {reachable} official pages reachable, "
-        f"{unreachable} unreachable, {official_unavailable} unavailable, "
-        f"{changed_jobs} changed, {len(new_jobs)} discovered"
+        f"Updated {len(data['jobs'])} verified-open jobs: {reachable} candidate checks reachable, "
+        f"{unreachable} unreachable, {len(candidates) - (len(live_jobs) - len(new_jobs))} excluded, "
+        f"{changed_jobs} changed, {len(new_jobs)} strictly discovered"
     )
     return 0
 

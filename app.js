@@ -2,14 +2,39 @@
   "use strict";
 
   const dataset = window.SOLID_MECHANICS_JOBS || { meta: {}, jobs: [] };
-  const allJobs = Array.isArray(dataset.jobs) ? dataset.jobs : [];
+  const sourceJobs = Array.isArray(dataset.jobs) ? dataset.jobs : [];
   const reviewDataset = window.SOLID_MECHANICS_EMPLOYEE_REVIEWS || { meta: {}, reviews: {} };
   const employeeReviews = reviewDataset.reviews || {};
 
-  const TYPE_ORDER = ["私营企业", "央国企", "研究所/实验室", "外资企业", "产业研究平台"];
+  function isHomepageEligible(job) {
+    const hasOfficialDetail = job.officialStatus === "verified"
+      && job.officialKind === "employer-job"
+      && /^https?:\/\//i.test(job.url || "");
+    const hasMechanicsEvidence = /力学/.test(job.majorEvidence || "") && Boolean(job.officialEvidence);
+    const deadline = job.deadline ? new Date(`${job.deadline}T23:59:59+08:00`) : null;
+    const deadlineIsCurrent = !deadline || Number.isNaN(deadline.getTime()) || deadline >= new Date();
+    return hasOfficialDetail && hasMechanicsEvidence && deadlineIsCurrent && job.status === "open";
+  }
+
+  // Defense in depth: even if a stale dataset is briefly served, the homepage
+  // never renders an expired, unverified or merely "potentially suitable" unit.
+  const allJobs = sourceJobs.filter(isHomepageEligible);
+  const validJobIds = new Set(allJobs.map((job) => job.id));
+  function readStoredSavedIds() {
+    try {
+      const parsed = JSON.parse(localStorage.getItem("solidMechanicsSavedJobs") || "[]");
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  const storedSavedIds = readStoredSavedIds();
+
+  const TYPE_ORDER = ["高校/科研院所", "央国企", "私营企业", "研究所/实验室", "外资企业", "产业研究平台"];
   const CITY_ORDER = ["上海", "合肥", "南京", "苏州", "无锡", "常州", "徐州", "杭州", "宁波", "绍兴", "江阴", "昆山"];
   const STATUS_LABELS = {
-    open: "当前在招",
+    open: "官网确认在招",
     monitor: "官网监测",
     intern: "实习转正",
     direct: "社招直投",
@@ -21,18 +46,16 @@
   const state = {
     type: "all",
     city: "all",
-    status: "all",
     match: "all",
     sort: "recommended",
     query: "",
     savedOnly: false,
-    saved: new Set(JSON.parse(localStorage.getItem("solidMechanicsSavedJobs") || "[]")),
+    saved: new Set(storedSavedIds.filter((id) => validJobIds.has(id))),
   };
 
   const elements = {
     typeTabs: document.querySelector("#typeTabs"),
     cityFilter: document.querySelector("#cityFilter"),
-    statusFilter: document.querySelector("#statusFilter"),
     matchFilter: document.querySelector("#matchFilter"),
     sortFilter: document.querySelector("#sortFilter"),
     searchInput: document.querySelector("#searchInput"),
@@ -50,7 +73,6 @@
     urgentJobs: document.querySelector("#urgentJobs"),
     openMetric: document.querySelector("#openMetric"),
     officialLinkCount: document.querySelector("#officialLinkCount"),
-    officialUnavailableCount: document.querySelector("#officialUnavailableCount"),
     officialDeadlineCount: document.querySelector("#officialDeadlineCount"),
     employeeReviewCount: document.querySelector("#employeeReviewCount"),
     sMetric: document.querySelector("#sMetric"),
@@ -134,7 +156,6 @@
       if (state.savedOnly && !state.saved.has(job.id)) return false;
       if (state.type !== "all" && job.employerType !== state.type) return false;
       if (state.city !== "all" && !String(job.city).includes(state.city)) return false;
-      if (state.status !== "all" && job.status !== state.status) return false;
       if (state.match !== "all" && job.match !== state.match) return false;
       if (query) {
         const review = employeeReviews[job.id] || {};
@@ -201,8 +222,7 @@
     if (!hasOfficialUrl) {
       return `<span class="source-button unavailable" role="status" title="${escapeHtml(job.officialNote || "招聘单位自有官网入口待开放")}">官网待开放</span>`;
     }
-    const label = job.officialKind === "employer-job" ? "官网岗位" : "招聘官网";
-    return `<a class="source-button" href="${escapeHtml(job.url)}" target="_blank" rel="noopener noreferrer" aria-label="打开${escapeHtml(job.company)}的招聘单位官网" title="仅连接招聘单位自有官网"><span>${label}</span>${externalIcon()}</a>`;
+    return `<a class="source-button" href="${escapeHtml(job.url)}" target="_blank" rel="noopener noreferrer" aria-label="打开${escapeHtml(job.company)}的官网岗位页" title="招聘单位官网具体岗位或正式招聘公告"><span>官网岗位</span>${externalIcon()}</a>`;
   }
 
   function pressureTone(pressure) {
@@ -287,13 +307,17 @@
           </div>
           <h5 title="${escapeHtml(job.role)}">${escapeHtml(job.role)}</h5>
           <p class="reputation">${escapeHtml(job.reputation)}</p>
+          <div class="eligibility-evidence" aria-label="首页收录依据">
+            <p><span>专业证据</span>${escapeHtml(job.majorEvidence)}</p>
+            <p><span>在招证据</span>${escapeHtml(job.officialEvidence)}</p>
+          </div>
         </div>
         <div class="location-block">
           <span>工作城市</span>
           <strong>${escapeHtml(job.city)}</strong>
         </div>
         <div class="salary-block">
-          <span>博士税前年包</span>
+          <span>博士薪资</span>
           <strong>${escapeHtml(salary)}</strong>
           <small class="deadline-line ${deadline.tone}" title="截止信息只采信招聘单位官网"><b>截止</b>${escapeHtml(deadline.label)}</small>
           <small class="last-check">官网核验 ${escapeHtml(formatDate(checkedAt))}${escapeHtml(sourceState)}</small>
@@ -336,7 +360,6 @@
     elements.radarCount.textContent = allJobs.length;
     elements.openMetric.textContent = officialJobs.length;
     elements.officialLinkCount.textContent = officialJobs.length;
-    elements.officialUnavailableCount.textContent = allJobs.filter((job) => job.officialStatus === "unavailable").length;
     elements.officialDeadlineCount.textContent = allJobs.filter((job) => job.deadlineStatus === "dated").length;
     if (elements.employeeReviewCount) {
       elements.employeeReviewCount.textContent = allJobs.filter((job) => employeeReviews[job.id]).length;
@@ -364,14 +387,12 @@
   function resetFilters() {
     state.type = "all";
     state.city = "all";
-    state.status = "all";
     state.match = "all";
     state.sort = "recommended";
     state.query = "";
     state.savedOnly = false;
     elements.searchInput.value = "";
     elements.cityFilter.value = "all";
-    elements.statusFilter.value = "all";
     elements.matchFilter.value = "all";
     elements.sortFilter.value = "recommended";
     document.querySelectorAll(".type-tab").forEach((tab) => {
@@ -400,7 +421,6 @@
       render();
     });
     elements.cityFilter.addEventListener("change", (event) => { state.city = event.target.value; render(); });
-    elements.statusFilter.addEventListener("change", (event) => { state.status = event.target.value; render(); });
     elements.matchFilter.addEventListener("change", (event) => { state.match = event.target.value; render(); });
     elements.sortFilter.addEventListener("change", (event) => { state.sort = event.target.value; render(); });
     elements.resetFilters.addEventListener("click", resetFilters);

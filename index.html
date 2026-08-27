@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="面向2027届固体力学博士的江浙沪与合肥招聘信息看板" />
+    <meta name="description" content="只展示招聘单位官网能够确认当前在招、且明确面向固体力学、力学或工程力学专业的岗位" />
     <meta name="theme-color" content="#0b2727" />
     <title>固体力学博士招聘雷达</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b2727'/%3E%3Cpath d='M12 48 32 12l20 36H12Z' fill='none' stroke='%23d7e75a' stroke-width='4'/%3E%3Ccircle cx='32' cy='37' r='8' fill='%23d7e75a'/%3E%3C/svg%3E" />
@@ -43,10 +43,10 @@
     <main id="top">
       <section class="hero shell">
         <div class="hero-copy">
-          <p class="eyebrow"><span></span> 每日 08:30 自动核验</p>
+          <p class="eyebrow"><span></span> 每日 08:30 官网严格核验</p>
           <h1>为固体力学博士<br /><em>筛出真正对口</em>的<br />工作机会。</h1>
           <p class="hero-intro">
-            聚焦上海、合肥、江苏、浙江，追踪有限元、冲击断裂、流固耦合、结构可靠性、CAE求解器与多物理场岗位；投递链接只连接招聘单位官网。
+            首页只展示招聘单位官网能够确认<strong>当前仍在招</strong>，且专业要求明确包含<strong>固体力学、力学或工程力学</strong>的具体岗位。没有合格岗位的单位暂不展示，后续官网发布后再自动加入。
           </p>
           <div class="hero-actions">
             <a class="primary-button" href="#jobs">查看今日机会 <span>↘</span></a>
@@ -81,9 +81,9 @@
 
       <section class="metrics shell" aria-label="数据摘要">
         <article>
-          <span>官方入口</span>
+          <span>官网在招岗位</span>
           <strong id="openMetric">0</strong>
-          <small>仅招聘单位自有官网</small>
+          <small>均有具体岗位证据</small>
         </article>
         <article>
           <span>S级匹配</span>
@@ -98,7 +98,7 @@
         <article>
           <span>单位类型</span>
           <strong id="typeMetric">0</strong>
-          <small>私企 / 国企 / 研究所等</small>
+          <small>高校 / 国企 / 私企等</small>
         </article>
       </section>
 
@@ -113,24 +113,21 @@
             <p class="eyebrow"><span></span> OPPORTUNITY INDEX</p>
             <h2>招聘机会索引</h2>
           </div>
-          <p>默认按城市优先级、匹配度与招聘状态排序；每张卡片均显示官网截止状态和可展开的职员视角。</p>
+          <p>默认优先上海、合肥，再到江苏、浙江；每张卡片都公开展示专业匹配证据、在招依据和官网截止状态。</p>
         </div>
 
         <div class="source-policy-note" role="note">
-          <span class="policy-seal">官网直连</span>
+          <span class="policy-seal">严格收录</span>
           <p>
-            <strong>不使用第三方招聘链接。</strong>
-            当前 <b id="officialLinkCount">—</b> 条记录已接入招聘单位官网，<b id="officialUnavailableCount">—</b> 条显示“官网待开放”；
-            其中 <b id="officialDeadlineCount">—</b> 条有官网明确截止日期。
+            <strong>当前 <span id="officialLinkCount">—</span> 条均为招聘单位官网正在招聘的具体岗位或正式招聘公告。</strong>
+            仅有招聘首页、业务方向看似相关、专业要求不明确、岗位下架或截止的单位都不会出现在首页；其中 <b id="officialDeadlineCount">—</b> 条有官网明确截止日期。
           </p>
         </div>
 
         <div class="review-policy-note" role="note">
           <span class="policy-seal review-seal">职员视角</span>
           <p>
-            已为 <b id="employeeReviewCount">—</b> 条记录补充工作环境、压力和常见节奏。
-            内容是对知乎、牛客及可公开检索职场讨论的<strong>匿名保守归纳</strong>，不复制原评论；小红书内容仅在能公开检索并交叉印证时纳入，低可信度只表示样本少。
-            所有社区来源均不作为投递入口。
+            已有公开样本可核验的岗位：<b id="employeeReviewCount">—</b> 条。职员视角是对知乎、牛客及可公开检索讨论的<strong>匿名保守归纳</strong>，不复制原评论；没有足量样本时明确显示“待核验”，不凭空评价。所有社区来源均不作为投递入口。
           </p>
         </div>
 
@@ -147,17 +144,6 @@
             <label>
               <span>城市</span>
               <select id="cityFilter"><option value="all">全部城市</option></select>
-            </label>
-            <label>
-              <span>状态</span>
-              <select id="statusFilter">
-                <option value="all">全部状态</option>
-                <option value="open">当前在招</option>
-                <option value="intern">实习转正</option>
-                <option value="monitor">官网监测</option>
-                <option value="direct">社招直投</option>
-                <option value="closed">已截止</option>
-              </select>
             </label>
             <label>
               <span>匹配度</span>
@@ -200,12 +186,12 @@
           <p class="eyebrow"><span></span> UPDATE ROUTINE</p>
           <h2>每天早上，先替你跑一遍招聘网站。</h2>
           <p>
-            更新器只核验招聘单位自有网站，识别官网明确写出的截止日期和“已结束”信号，并扫描官网中的力学、有限元、CAE、结构、疲劳、流固耦合等关键词。
+            更新器先核验具体岗位页或正式招聘公告，再确认其专业要求明确包含固体力学、力学或工程力学。任何一项证据缺失，岗位都会先从首页移出并留在后台继续监测。
           </p>
           <div class="method-grid">
-            <div><b>01</b><span>核验已有岗位</span></div>
-            <div><b>02</b><span>扫描官方入口</span></div>
-            <div><b>03</b><span>更新状态与日期</span></div>
+            <div><b>01</b><span>确认具体岗位在招</span></div>
+            <div><b>02</b><span>核对力学专业要求</span></div>
+            <div><b>03</b><span>更新截止与上下架</span></div>
           </div>
         </div>
       </section>
@@ -214,7 +200,7 @@
     <footer class="site-footer shell">
       <div>
         <strong>固体力学博士招聘雷达</strong>
-        <p>岗位入口只使用招聘单位官网；薪资估算与匿名职员反馈汇总仅供个人求职参考。</p>
+        <p>首页只保留官网确认在招且明确面向力学专业的岗位；薪资与匿名职员反馈仅供个人求职参考。</p>
       </div>
       <div class="footer-meta">
         <span id="footerVersion">数据版本 —</span>
@@ -225,16 +211,17 @@
     <dialog class="info-dialog" id="methodDialog">
       <button class="dialog-close" type="button" aria-label="关闭">×</button>
       <p class="eyebrow"><span></span> 更新机制</p>
-      <h2>自动更新并不等于盲目信任爬虫。</h2>
+      <h2>只有证据完整的岗位，才会进入首页。</h2>
       <p>
-        每天的任务只检查招聘单位自有官网及其自有招聘域名。高校转载页、牛客、应届生、WonderCV、LinkedIn、招聘聚合站和通用招聘 SaaS 均不作为可点击入口。
+        每天的任务只检查招聘单位自有官网及其自有招聘域名。首页记录必须同时通过“具体岗位、当前有效、力学专业匹配、单位官网”四项检查。
       </p>
       <ul>
+        <li>官网必须能确认具体岗位或正式招聘公告，不把招聘首页、人才政策页或单位业务方向当成岗位。</li>
+        <li>专业要求必须明确写出固体力学、力学或工程力学；仅凭岗位名称推测适合的不收录。</li>
         <li>截止日期只在招聘单位官网明确写出时显示；否则标注“官网未公布”。</li>
         <li>官网写明“招满即止”或“长期有效”时，按原文状态标注。</li>
-        <li>没有单位自有招聘入口时禁用按钮，显示“官网待开放”，不会用第三方链接补位。</li>
+        <li>岗位下架、截止、官网无法验证或证据缺失时立即移出首页，但单位仍保留在后台监测名单中。</li>
         <li>职员视角单独参考知乎、牛客等公开讨论，只做匿名归纳；它与官网招聘数据分开，不提供第三方投递链接。</li>
-        <li>匿名评论有自选择偏差，同一单位不同部门、直属领导、基地和项目阶段可能差异很大；建议把页面提示转成面试问题逐项核实。</li>
       </ul>
       <a class="primary-button" href="README.md">查看配置方法</a>
     </dialog>
