@@ -1,16 +1,16 @@
 {
   "meta": {
-    "version": "2026.08.27.3",
+    "version": "2026.08.27.4",
     "updatedAt": "2026-08-27",
-    "updatedTime": "10:14",
+    "updatedTime": "10:23",
     "timezone": "Asia/Shanghai",
     "schedule": "每天 08:30",
     "scope": "上海、合肥、江苏、浙江",
     "lastRun": {
-      "reachable": 45,
-      "unreachable": 11,
+      "reachable": 46,
+      "unreachable": 10,
       "officialUnavailable": 9,
-      "changedJobs": 17,
+      "changedJobs": 7,
       "discoveredJobs": 0
     },
     "officialLinkPolicy": "只允许招聘单位自有域名、招聘单位自有招聘子域名或单位官网内的人才招聘栏目；不使用高校转载页、综合招聘平台或聚合站作为跳转入口。",
@@ -310,7 +310,7 @@
       "deadlineStatus": "not-published",
       "contentHash": "015286337f42c52c",
       "pageTitle": "加入我们 - 北方华创",
-      "lastError": "The read operation timed out",
+      "lastError": "timed out",
       "lastAttempt": "2026-08-27"
     },
     {
@@ -397,7 +397,7 @@
       "officialStatus": "verified",
       "deadlineTracking": "portal",
       "deadlineStatus": "not-published",
-      "contentHash": "7ebd2bbd49fb7dc2",
+      "contentHash": "fdb50cb44a71ce03",
       "pageTitle": "联影_招聘_集团_人才_校招_管培",
       "changedAt": "2026-08-27"
     },
@@ -600,7 +600,7 @@
       "officialStatus": "verified",
       "deadlineTracking": "portal",
       "deadlineStatus": "not-published",
-      "lastError": "[Errno -2] Name or service not known",
+      "lastError": "HTTP 404",
       "lastAttempt": "2026-08-27"
     },
     {
@@ -1208,17 +1208,15 @@
       ],
       "reputation": "国防电子头部平台、稳定性强；竞争激烈、保密和流程较多。",
       "url": "https://14.cetc.com.cn/14/338599/338545/index.html",
-      "lastChecked": "2026-08-26",
-      "sourceState": "official-unreachable",
+      "lastChecked": "2026-08-27",
+      "sourceState": "official-verified",
       "officialKind": "employer-careers",
       "officialVerifiedAt": "2026-08-26",
       "officialStatus": "verified",
       "deadlineTracking": "portal",
       "deadlineStatus": "not-published",
       "contentHash": "74d0c5ab9f3f4d88",
-      "pageTitle": "人才招聘-中电国睿集团有限公司",
-      "lastError": "[Errno 104] Connection reset by peer",
-      "lastAttempt": "2026-08-27"
+      "pageTitle": "人才招聘-中电国睿集团有限公司"
     },
     {
       "id": "js-aecc-control-2027",
@@ -1421,7 +1419,7 @@
       "officialStatus": "verified",
       "deadlineTracking": "portal",
       "deadlineStatus": "not-published",
-      "contentHash": "cccb97cba7702367",
+      "contentHash": "ae93e4e0b035b82f",
       "pageTitle": "瑞声科技",
       "changedAt": "2026-08-27"
     },
@@ -1712,7 +1710,7 @@
       "officialStatus": "verified",
       "deadlineTracking": "portal",
       "deadlineStatus": "not-published",
-      "contentHash": "d220072d7991cdd0",
+      "contentHash": "a1f6b7a5bdee92ea",
       "pageTitle": "CFMOTO春风动力中文官网",
       "changedAt": "2026-08-27"
     },
@@ -1858,7 +1856,7 @@
       "officialStatus": "verified",
       "deadlineTracking": "portal",
       "deadlineStatus": "not-published",
-      "contentHash": "1931fb3086e52574",
+      "contentHash": "ec9c74a356fc6cdd",
       "pageTitle": "晶盛机电",
       "changedAt": "2026-08-27"
     },
