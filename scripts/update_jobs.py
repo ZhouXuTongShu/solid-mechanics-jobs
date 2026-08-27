@@ -30,6 +30,8 @@ DATA_FILE = PROJECT_ROOT / "data" / "jobs.js"
 JSON_MIRROR = PROJECT_ROOT / "data" / "jobs.json"
 WATCH_FILE = PROJECT_ROOT / "data" / "watch_sources.json"
 MAX_RESPONSE_BYTES = 2_500_000
+CHINA_TIMEZONE = dt.timezone(dt.timedelta(hours=8))
+MIN_REACHABLE_DIVISOR = 5
 USER_AGENT = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
     "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36 "
@@ -220,6 +222,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--dry-run", action="store_true", help="Check pages but do not write files")
     parser.add_argument("--export-only", action="store_true", help="Only create the JSON mirror")
     parser.add_argument("--skip-discovery", action="store_true", help="Do not scan watch sources")
+    parser.add_argument(
+        "--skip-if-updated-today",
+        action="store_true",
+        help="Exit without fetching when the dataset was already refreshed today in Asia/Shanghai",
+    )
     parser.add_argument("--timeout", type=float, default=12.0, help="Per-request timeout in seconds")
     parser.add_argument("--workers", type=int, default=8, help="Number of parallel fetch workers")
     return parser.parse_args()
@@ -550,7 +557,8 @@ def write_dataset(data: dict[str, Any]) -> None:
     temp_json.replace(JSON_MIRROR)
 
 
-def bump_version(meta: dict[str, Any], today: dt.date) -> None:
+def bump_version(meta: dict[str, Any], now: dt.datetime) -> None:
+    today = now.date()
     prefix = today.strftime("%Y.%m.%d")
     old_version = str(meta.get("version", ""))
     suffix = 1
@@ -561,23 +569,40 @@ def bump_version(meta: dict[str, Any], today: dt.date) -> None:
             pass
     meta["version"] = f"{prefix}.{suffix}"
     meta["updatedAt"] = today.isoformat()
-    meta["updatedTime"] = dt.datetime.now().strftime("%H:%M")
+    meta["updatedTime"] = now.strftime("%H:%M")
 
 
 def main() -> int:
     args = parse_args()
     data = load_dataset()
-    today = dt.datetime.now(dt.timezone(dt.timedelta(hours=8))).date()
+    now = dt.datetime.now(CHINA_TIMEZONE)
+    today = now.date()
 
     if args.export_only:
         JSON_MIRROR.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         print(f"Exported {len(data['jobs'])} jobs to {JSON_MIRROR.relative_to(PROJECT_ROOT)}")
         return 0
 
+    if args.skip_if_updated_today and data.get("meta", {}).get("updatedAt") == today.isoformat():
+        print(f"Already refreshed on {today.isoformat()} Asia/Shanghai; skipping backup run")
+        return 0
+
     watch_sources = [] if args.skip_discovery else load_watch_sources()
-    urls = [job.get("url", "") for job in data["jobs"]]
+    job_urls = [job.get("url", "") for job in data["jobs"]]
+    urls = list(job_urls)
     urls.extend(source.get("url", "") for source in watch_sources)
     results = fetch_many(urls, timeout=args.timeout, workers=args.workers)
+
+    unique_official_urls = {url for url in job_urls if url}
+    reachable_probe = sum(bool(results.get(url) and results[url].ok) for url in unique_official_urls)
+    minimum_reachable = max(1, (len(unique_official_urls) + MIN_REACHABLE_DIVISOR - 1) // MIN_REACHABLE_DIVISOR)
+    if unique_official_urls and reachable_probe < minimum_reachable:
+        print(
+            f"Connectivity guard: only {reachable_probe}/{len(unique_official_urls)} official pages reachable; "
+            f"need at least {minimum_reachable}. Dataset was preserved for a later retry.",
+            file=sys.stderr,
+        )
+        return 2
 
     changed_jobs = 0
     reachable = 0
@@ -605,7 +630,7 @@ def main() -> int:
     if new_jobs:
         data["jobs"].extend(new_jobs)
 
-    bump_version(data.setdefault("meta", {}), today)
+    bump_version(data.setdefault("meta", {}), now)
     data["meta"]["lastRun"] = {
         "reachable": reachable,
         "unreachable": unreachable,

@@ -2,8 +2,12 @@ name: Daily job refresh
 
 on:
   schedule:
-    # 00:30 UTC = 08:30 Asia/Shanghai (China does not observe DST)
-    - cron: "30 0 * * *"
+    # Start shortly before 08:30 so the published page is normally ready by 08:30.
+    - cron: "23 8 * * *"
+      timezone: "Asia/Shanghai"
+    # Backup run: exits without fetching if the primary run already refreshed today.
+    - cron: "7 9 * * *"
+      timezone: "Asia/Shanghai"
   workflow_dispatch:
 
 permissions:
@@ -26,7 +30,12 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Verify and discover jobs
+      - name: Verify and discover jobs (scheduled)
+        if: github.event_name == 'schedule'
+        run: python scripts/update_jobs.py --timeout 12 --workers 8 --skip-if-updated-today
+
+      - name: Verify and discover jobs (manual)
+        if: github.event_name == 'workflow_dispatch'
         run: python scripts/update_jobs.py --timeout 12 --workers 8
 
       - name: Commit refreshed data

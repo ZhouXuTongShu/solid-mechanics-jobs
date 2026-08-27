@@ -49,7 +49,7 @@ python3 scripts/update_jobs.py --dry-run
 
 项目已经包含两个工作流：
 
-- `.github/workflows/update-jobs.yml`：每天北京时间 08:30 更新岗位数据并提交；
+- `.github/workflows/update-jobs.yml`：每天北京时间 08:23 启动核验，通常在 08:30 前完成；09:07 设一次幂等备用检查；
 - `.github/workflows/deploy-pages.yml`：数据变化后自动发布网页。
 
 使用步骤：
@@ -59,7 +59,7 @@ python3 scripts/update_jobs.py --dry-run
 3. 在 `Actions` 页面手动运行一次 `Deploy dashboard to GitHub Pages`；
 4. 确认仓库 `Settings → Actions → General → Workflow permissions` 允许 `Read and write permissions`。
 
-GitHub 的定时任务可能比 08:30 延迟几分钟，但不需要电脑保持开机。
+GitHub 官方说明定时任务可能延迟，负载很高时个别任务甚至可能被丢弃。因此这里采用“主任务 + 当日备用任务”；备用任务发现当天已经成功更新时会直接退出，不重复改写数据。更新器还设有网络保护：若可连接官网数量异常过低，会保留上一版数据并等待备用任务重试。
 
 ### 方案二：macOS 本地定时
 
