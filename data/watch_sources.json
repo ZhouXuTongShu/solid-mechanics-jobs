@@ -1,6 +1,7 @@
 {
-  "policy": "Only employer-owned websites and employer-owned recruitment domains are scanned.",
+  "policy": "Only employer-owned websites or employer-authorized branded recruitment systems are scanned; aggregators are excluded.",
   "sources": [
+    { "company": "中微公司", "employerType": "上市企业", "city": "上海", "url": "https://app.mokahr.com/campus_apply/amec/4362#/jobs", "allowedHosts": ["app.mokahr.com"] },
     { "company": "禾赛科技", "employerType": "私营企业", "city": "上海", "url": "https://www.hesaitech.com/cn/careers" },
     { "company": "智元机器人", "employerType": "私营企业", "city": "上海", "url": "https://www.agibot.com.cn/join_us" },
     { "company": "远景动力", "employerType": "私营企业", "city": "上海", "url": "https://www.aesc-group.com.cn/careers" },

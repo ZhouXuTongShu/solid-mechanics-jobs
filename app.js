@@ -7,7 +7,7 @@
   const employeeReviews = reviewDataset.reviews || {};
   const ENTERPRISE_TYPES = new Set(["央国企", "私营企业", "外资企业", "上市企业"]);
   const ACADEMIC_GROUP_PATTERN = /课题组|实验室|博士后|项目组|教授团队|大学·/i;
-  const MECHANICS_WORK_PATTERN = /固体力学|工程力学|计算力学|结构力学|有限元|\bFEA\b|\bCAE\b|\bCFD\b|结构仿真|结构强度|高性能结构|复材工程结构|振动控制|结构振动|振动噪声|疲劳|断裂|热[\/、]应力仿真|应力仿真|力[\/、]热仿真|流体仿真|流动与传热|流体力学|热管理|流固耦合|多物理场/i;
+  const MECHANICS_WORK_PATTERN = /固体力学|工程力学|计算力学|结构力学|有限元|\bFEA\b|\bCAE\b|\bCFD\b|结构仿真|结构强度|高性能结构|复材工程结构|振动控制|结构振动|振动噪声|疲劳|断裂|热[\/、-]?应力仿真|热力仿真|热[—-]力耦合|应力仿真|力[\/、]热仿真|流体仿真|散热仿真|流动与传热|流体力学|热管理|流固耦合|多物理场/i;
 
   function isHomepageEligible(job) {
     const hasOfficialDetail = job.officialStatus === "verified"
@@ -298,6 +298,8 @@
     const deadline = getDeadlineInfo(job);
     const sourceState = job.sourceState === "official-protected"
       ? " · 官网访问保护"
+      : job.sourceState === "official-browser-verified"
+        ? " · 浏览器核验"
       : job.sourceState === "official-unreachable"
         ? " · 暂未连通"
         : job.officialStatus === "unavailable" ? " · 无自有入口" : "";

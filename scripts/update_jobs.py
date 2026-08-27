@@ -14,8 +14,11 @@ import hashlib
 import html
 import json
 import re
+import shutil
 import ssl
+import subprocess
 import sys
+import tempfile
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -243,6 +246,8 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--timeout", type=float, default=12.0, help="Per-request timeout in seconds")
     parser.add_argument("--workers", type=int, default=8, help="Number of parallel fetch workers")
+    parser.add_argument("--verbose", action="store_true", help="Print the verification result for each candidate")
+    parser.add_argument("--skip-browser", action="store_true", help="Skip dynamic browser checks (diagnostics only)")
     return parser.parse_args()
 
 
@@ -300,6 +305,16 @@ def load_candidates() -> list[dict[str, Any]]:
             raise ValueError(f"Candidate {candidate_id} is not an allowed enterprise record")
         if not str(candidate.get("url", "")).startswith(("https://", "http://")):
             raise ValueError(f"Candidate {candidate_id} has an invalid official URL")
+        verification_url = str(candidate.get("verificationUrl", ""))
+        if verification_url:
+            if not verification_url.startswith(("https://", "http://")):
+                raise ValueError(f"Candidate {candidate_id} has an invalid verification URL")
+            job_host = (urllib.parse.urlsplit(str(candidate["url"])).hostname or "").lower()
+            verification_host = (urllib.parse.urlsplit(verification_url).hostname or "").lower()
+            if not job_host or verification_host != job_host:
+                raise ValueError(
+                    f"Candidate {candidate_id} verification URL must use the same official recruitment host"
+                )
         evidence_text = " ".join(
             [
                 str(candidate.get("role", "")),
@@ -423,6 +438,118 @@ def fetch_many(urls: Iterable[str], timeout: float, workers: int) -> dict[str, F
     return results
 
 
+def find_chrome() -> str | None:
+    configured = shutil.which("google-chrome") or shutil.which("chromium") or shutil.which("chromium-browser")
+    if configured:
+        return configured
+    mac_chrome = Path("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
+    return str(mac_chrome) if mac_chrome.is_file() else None
+
+
+def fetch_browser_page(url: str, timeout: float) -> FetchResult:
+    """Render a first-party dynamic job page and return the resulting DOM.
+
+    Moka-style recruitment pages keep the job id after a URL fragment and load
+    the job body in JavaScript, so a normal HTTP request can only see the app
+    shell. Chrome's rendered DOM lets the same evidence checks remain strict.
+    """
+    chrome = find_chrome()
+    if not chrome:
+        return FetchResult(url=url, ok=False, error="Chrome is unavailable for browser verification")
+
+    virtual_time_ms = max(10_000, int(timeout * 1_000))
+    body = b""
+    stderr_bytes = b""
+    returncode = 0
+    try:
+        with tempfile.TemporaryDirectory(prefix="solid-jobs-browser-") as profile_dir:
+            completed = subprocess.run(
+                [
+                    chrome,
+                    "--headless=new",
+                    "--disable-gpu",
+                    "--disable-dev-shm-usage",
+                    "--disable-background-networking",
+                    "--disable-component-update",
+                    "--disable-extensions",
+                    "--no-first-run",
+                    "--no-default-browser-check",
+                    f"--user-data-dir={profile_dir}",
+                    f"--virtual-time-budget={virtual_time_ms}",
+                    "--dump-dom",
+                    url,
+                ],
+                capture_output=True,
+                timeout=max(45.0, timeout + 30.0),
+                check=False,
+            )
+            body = completed.stdout[:MAX_RESPONSE_BYTES]
+            stderr_bytes = completed.stderr
+            returncode = completed.returncode
+    except subprocess.TimeoutExpired as exc:
+        # Some recruitment SPAs keep background connections open after Chrome has
+        # already emitted --dump-dom. subprocess.run terminates Chrome at the
+        # deadline and exposes that complete rendered DOM on the exception.
+        body = (exc.stdout or b"")[:MAX_RESPONSE_BYTES]
+        stderr_bytes = exc.stderr or b""
+        returncode = 124
+        if not body:
+            return FetchResult(url=url, ok=False, error="browser verification timed out")
+    except OSError as exc:
+        return FetchResult(url=url, ok=False, error=f"browser verification failed: {exc}")
+
+    if not body:
+        stderr = stderr_bytes.decode("utf-8", errors="replace")[-300:]
+        return FetchResult(
+            url=url,
+            ok=False,
+            error=f"browser verification returned no DOM (exit {returncode}): {stderr}",
+        )
+
+    source = decode_body(body, "text/html; charset=utf-8")
+    parser = PageParser()
+    try:
+        parser.feed(source)
+        visible = parser.text
+        title = parser.title
+        links = parser.links
+    except Exception:
+        visible = html.unescape(re.sub(r"<[^>]+>", " ", source))
+        title = ""
+        links = []
+    return FetchResult(
+        url=url,
+        ok=True,
+        status_code=200,
+        content_type="text/html; charset=utf-8",
+        title=title,
+        text=re.sub(r"\s+", " ", visible),
+        source_text=source,
+        links=links,
+        content_hash=hashlib.sha256(body).hexdigest()[:16],
+    )
+
+
+def fetch_browser_many(urls: Iterable[str], timeout: float, workers: int = 1) -> dict[str, FetchResult]:
+    unique_urls = list(dict.fromkeys(url for url in urls if url))
+    results: dict[str, FetchResult] = {}
+    # Running several isolated Chrome profiles concurrently is unreliable on both
+    # macOS and GitHub-hosted runners. These pages are few, so verify sequentially.
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+        future_map = {executor.submit(fetch_browser_page, url, timeout): url for url in unique_urls}
+        for future in concurrent.futures.as_completed(future_map):
+            original_url = future_map[future]
+            try:
+                results[original_url] = future.result()
+            except Exception as exc:
+                results[original_url] = FetchResult(url=original_url, ok=False, error=str(exc))
+    return results
+
+
+def candidate_verification_url(candidate: dict[str, Any]) -> str:
+    return str(candidate.get("verificationUrl") or candidate.get("url") or "")
+
+
 def canonical_url(url: str) -> str:
     parsed = urllib.parse.urlsplit(url)
     filtered_query = [
@@ -523,7 +650,12 @@ def candidate_to_live_job(
     if not is_enterprise_record(candidate):
         return None, "non-enterprise"
 
-    job = {key: value for key, value in candidate.items() if key != "evidenceAll"}
+    job = {
+        key: value
+        for key, value in candidate.items()
+        if key not in {"evidenceAll", "verificationUrl", "verificationMode", "browserTimeout"}
+    }
+    browser_verified = candidate.get("verificationMode") == "browser-official-page"
     job.update(
         {
             "status": "open",
@@ -533,13 +665,21 @@ def candidate_to_live_job(
             if protected_fallback
             else today.isoformat(),
             "lastChecked": today.isoformat(),
-            "sourceState": "official-protected" if protected_fallback else "official-verified",
+            "sourceState": (
+                "official-protected"
+                if protected_fallback
+                else "official-browser-verified"
+                if browser_verified
+                else "official-verified"
+            ),
             "contentHash": result.content_hash,
         }
     )
     if protected_fallback:
         job["verificationNote"] = "官网对自动访问启用保护；当前状态沿用最近一次人工浏览器核验，并继续每日检查链接与截止日。"
-    elif result.title:
+    elif browser_verified:
+        job["verificationNote"] = "该招聘官网由前端动态加载；本站每日使用浏览器核验具体岗位标题、职责与投递状态。"
+    if result.title:
         job["pageTitle"] = result.title[:180]
     return job, "verified-open"
 
@@ -673,10 +813,35 @@ def main() -> int:
 
     candidates = load_candidates()
     watch_sources = [] if args.skip_discovery else [source for source in load_watch_sources() if is_enterprise_record(source)]
-    candidate_urls = [candidate.get("url", "") for candidate in candidates]
+    candidate_urls = [candidate_verification_url(candidate) for candidate in candidates]
     urls = list(candidate_urls)
     urls.extend(source.get("url", "") for source in watch_sources)
     results = fetch_many(urls, timeout=args.timeout, workers=args.workers)
+    browser_candidates = [
+        candidate for candidate in candidates if candidate.get("verificationMode") == "browser-official-page"
+    ]
+    browser_results = (
+        {}
+        if args.skip_browser
+        else fetch_browser_many(
+            [str(candidate.get("url", "")) for candidate in browser_candidates],
+            timeout=max(args.timeout, 15.0),
+            workers=args.workers,
+        )
+    )
+
+    if browser_candidates and not args.skip_browser:
+        browser_reachable = sum(
+            bool(browser_results.get(str(candidate.get("url", ""))) and browser_results[str(candidate.get("url", ""))].ok)
+            for candidate in browser_candidates
+        )
+        if browser_reachable == 0:
+            print(
+                "Browser connectivity guard: none of the dynamic official job pages could be rendered; "
+                "dataset was preserved for a later retry.",
+                file=sys.stderr,
+            )
+            return 2
 
     unique_official_urls = {url for url in candidate_urls if url}
     reachable_probe = sum(bool(results.get(url) and results[url].ok) for url in unique_official_urls)
@@ -695,12 +860,28 @@ def main() -> int:
     reachable = 0
     unreachable = 0
     for candidate in candidates:
-        candidate_url = candidate.get("url", "")
-        result = results.get(candidate_url, FetchResult(url=candidate_url, ok=False, error="missing result"))
+        candidate_url = candidate_verification_url(candidate)
+        if candidate.get("verificationMode") == "browser-official-page":
+            browser_url = str(candidate.get("url", ""))
+            result = browser_results.get(
+                browser_url, FetchResult(url=browser_url, ok=False, error="missing browser result")
+            )
+        else:
+            result = results.get(candidate_url, FetchResult(url=candidate_url, ok=False, error="missing result"))
         reachable += int(result.ok)
         unreachable += int(not result.ok)
         job, reason = candidate_to_live_job(candidate, result, today)
         exclusion_reasons[reason] = exclusion_reasons.get(reason, 0) + 1
+        if args.verbose:
+            detail = f" ({result.error})" if result.error else ""
+            if reason == "evidence-missing":
+                verification_text = f"{result.text} {html.unescape(result.source_text)}"
+                normalized = re.sub(r"\s+", " ", verification_text).casefold()
+                missing_terms = [
+                    term for term in candidate.get("evidenceAll", []) if term.casefold() not in normalized
+                ]
+                detail += f" missing={missing_terms!r} source={normalized[:240]!r}"
+            print(f"[{reason}] {candidate.get('id')}{detail}")
         if job:
             live_jobs.append(job)
 

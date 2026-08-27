@@ -22,14 +22,15 @@ python3 -m http.server 8000
 
 ## 每日更新机制
 
-更新器位于 `scripts/update_jobs.py`，只使用 Python 标准库。每次运行会：
+更新器位于 `scripts/update_jobs.py`，主体只使用 Python 标准库；对前端动态加载的官方岗位页会调用本机 Chrome 做渲染核验。每次运行会：
 
-1. 并行访问 `data/job_candidates.json` 中的企业官网岗位页；
+1. 并行访问 `data/job_candidates.json` 中的企业官网岗位页或同一品牌招聘域名下的职位接口；
 2. 同时核对企业身份、具体岗位、力学工作内容、当前有效信号和截止日期；
 3. 任一证据缺失、岗位下架或截止时，将该记录从首页数据中移除；
 4. 扫描 `data/watch_sources.json` 中的单位自有招聘入口，寻找新的具体岗位页；
 5. 自动发现的岗位也必须在企业官网详情页同时通过力学工作内容与在招核验，才可进入首页；
-6. 重建 `data/jobs.js` 和便于二次开发的 `data/jobs.json`。
+6. 对 Moka 等使用 URL 片段和 JavaScript 加载的官方详情页，逐页核验渲染后的岗位标题、职责和投递状态；
+7. 重建 `data/jobs.js` 和便于二次开发的 `data/jobs.json`。
 
 手动更新：
 
@@ -43,7 +44,7 @@ python3 scripts/update_jobs.py
 python3 scripts/update_jobs.py --dry-run
 ```
 
-更新器只允许从企业自有域名或企业官方招聘系统发现新链接，并拒绝官网中跳向综合招聘平台的链接。企业官网使用受控招聘 SaaS 时，只保留能明确归属于该企业的官方职位页。部分官网依赖登录、验证码或前端动态接口；如果当天网络整体异常，网络保护会保留上一版数据；如果只是某个岗位无法继续验证，该岗位会暂时离开首页并继续接受后台监测。少数启用访问保护的官网，允许在人工复核日到官网明确截止日之间保留，并在卡片上标注“官网访问保护”。
+更新器只允许从企业自有域名或企业官方招聘系统发现新链接，并拒绝官网中跳向综合招聘平台的链接。企业官网使用受控招聘 SaaS 时，只保留由企业官网确认、具有该企业独立品牌入口且能直达具体职位的页面。部分官网依赖登录、验证码或前端动态接口；如果当天网络整体异常，或所有动态页面同时无法渲染，网络保护会保留上一版数据；如果只是某个岗位无法继续验证，该岗位会暂时离开首页并继续接受后台监测。少数启用访问保护的官网，允许在人工复核日到官网明确截止日之间保留，并在卡片上标注“官网访问保护”。本地手动更新需要安装 Google Chrome；GitHub 托管运行器已预装浏览器并会在任务开始时检查版本。
 
 ## 固定每天 08:30 更新
 
@@ -98,6 +99,7 @@ launchctl bootout "gui/$(id -u)" "$HOME/Library/LaunchAgents/com.zhouxutong.soli
   "keywords": ["有限元", "流固耦合"],
   "reputation": "工作环境的保守描述",
   "url": "https://单位自有招聘域名.example/job",
+  "verificationMode": "browser-official-page",
   "deadline": "2026-10-30",
   "deadlineStatus": "dated",
   "fitEvidence": "官网职责明确包含有限元结构与热应力仿真",
@@ -106,7 +108,7 @@ launchctl bootout "gui/$(id -u)" "$HOME/Library/LaunchAgents/com.zhouxutong.soli
 }
 ```
 
-`fitEvidence` 必须引用官网岗位职责或要求中明确的力学工作内容，不能仅凭企业业务方向推测。`evidenceAll` 中的每个证据片段都必须继续出现在企业官网响应中，否则候选岗位不会进入首页。`deadlineStatus` 可为 `dated`（官网明确日期）、`rolling`（官网写明招满即止/长期有效）或 `not-published`（官网未公布）。首页状态统一为 `open`；已截止和仅监测单位不发布到首页。
+`fitEvidence` 必须引用官网岗位职责或要求中明确的力学工作内容，不能仅凭企业业务方向推测。`evidenceAll` 中的每个证据片段都必须继续出现在企业官网响应中，否则候选岗位不会进入首页。`verificationUrl` 只用于同一官方招聘域名的动态详情接口；无法通过接口核验的 JavaScript 页面可设置 `verificationMode: browser-official-page`。`deadlineStatus` 可为 `dated`（官网明确日期）、`rolling`（官网写明招满即止/长期有效）或 `not-published`（官网未公布）。首页状态统一为 `open`；已截止和仅监测单位不发布到首页。
 
 匹配度可选 `S`、`A`、`B`。候选单位类型只允许 `上市企业`、`央国企`、`外资企业` 或 `私营企业`；脚本和浏览器前端都会再次拒绝高校、课题组、实验室、博士后和项目组记录。没有当前合格岗位但值得追踪的企业只加入 `data/watch_sources.json`，不要放进候选清单。旧版人工官网清单保留在 `data/official_links.json` 供复核，但不直接决定首页展示。
 

@@ -30,6 +30,9 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Check dynamic-page browser
+        run: google-chrome --version
+
       - name: Verify and discover jobs (scheduled)
         if: github.event_name == 'schedule'
         run: python scripts/update_jobs.py --timeout 12 --workers 8 --skip-if-updated-today
